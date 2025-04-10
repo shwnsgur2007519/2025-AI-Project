@@ -1,16 +1,22 @@
 import numpy as np
 import random
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt # type: ignore/
+import os
+import json
 
 # --------------------------
 # 간단한 스케줄링 환경 클래스
 # --------------------------
+
+
 class SimpleScheduleEnv:
-    def __init__(self):
-        self.num_blocks = 10  # 하루를 10개의 블록으로 나눔
-        self.num_tasks = 3    # 일반 일정 3개
+    def __init__(self, task_list):
+        self.task_list = task_list
+        self.num_tasks = len(task_list)
+        self.num_blocks = 10
         self.total_actions = self.num_tasks + 1  # 마지막은 'DoNothing'
         self.reset()
+
 
     def reset(self):
         self.current_block = 0
@@ -45,7 +51,10 @@ class SimpleScheduleEnv:
 # --------------------------
 # 피처 벡터 생성 함수
 # --------------------------
-def get_feature(state, action, state_dim, action_dim):
+def get_feature(state, action, state_dim, action_dim): # 현재 상태와 그 행동을 했을 때의 특징을 리턴
+    # state: 배치된 상태와 고정일정
+    # action: 다음 일정을 배치할 시간과 다음 일정
+    # 리턴: 전 4개, 후 고정 6개 특징. 
     s_feat = state / 10.0  # 정규화
     a_feat = np.eye(action_dim)[action]
     return np.concatenate([s_feat, a_feat])
@@ -53,20 +62,28 @@ def get_feature(state, action, state_dim, action_dim):
 # --------------------------
 # n-step Q-learning 학습
 # --------------------------
+
+with open("AIfiles/task_list.json", "r", encoding="utf-8") as f:
+    task_list = json.load(f)
+# print(task_list)
 state_dim = 2
-action_dim = 4  # 3 tasks + DoNothing
+action_dim = len(task_list) + 1  # 3 tasks + DoNothing
 feature_dim = state_dim + action_dim
 
-w = np.zeros(feature_dim)
+weight_file = "./AIfiles/trained_weights.npy"
+if os.path.exists(weight_file):
+    w = np.load(weight_file)
+else:
+    w = np.zeros(feature_dim)
 gamma = 0.95
 alpha = 0.1
 n_step = 3
-episodes = 200
+episodes = 10000
 
 log = []
 
 for ep in range(episodes):
-    env = SimpleScheduleEnv()
+    env = SimpleScheduleEnv(task_list)
     state = env.reset()
     done = False
     memory = []
@@ -114,9 +131,13 @@ for ep in range(episodes):
 # --------------------------
 # 학습 결과 시각화
 # --------------------------
-plt.plot(log)
-plt.title("Total reward per episode (n-step Linear Q)")
-plt.xlabel("Episode")
-plt.ylabel("Total reward")
-plt.grid()
-plt.show()
+# plt.plot(log)
+# plt.title("Total reward per episode (n-step Linear Q)")
+# plt.xlabel("Episode")
+# plt.ylabel("Total reward")
+# plt.grid()
+# plt.show()
+
+
+
+np.save(weight_file, w)

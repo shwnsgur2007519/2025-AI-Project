@@ -1,0 +1,25 @@
+[
+    {
+      "task_id": 1,
+      "duration_minutes": 90,
+      "difficulty": 3,
+      "importance": 4,
+      "task_type": "암기",
+      "subject": "역사",
+      "is_exam_task": true,
+      "days_until_exam": 5,
+      "is_exam_subject": true
+    },
+    {
+      "task_id": 2,
+      "duration_minutes": 60,
+      "difficulty": 2,
+      "importance": 3,
+      "task_type": "문제 풀이",
+      "subject": "수학",
+      "is_exam_task": false,
+      "days_until_exam": null,
+      "is_exam_subject": false
+    }
+  ]
+  
