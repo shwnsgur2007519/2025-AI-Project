@@ -13,26 +13,56 @@
     <!-- 네비게이션바 -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'calendar:index' %}">Pybo</a>
-            <button class="navbar-toggler" type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#navbarSupportedContent"
-                    aria-controls="navbarSupportedContent"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% provider_login_url 'google' %}"
-                        onclick="window.open(this.href, 'googleLogin', 'width=500,height=600'); return false;"
-                        >로그인</a>
-                    </li>
-                </ul>
+          <a class="navbar-brand" href="{% url 'calendar:index' %}">Pybo</a>
+          <button class="navbar-toggler" type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#navbarSupportedContent"
+                  aria-controls="navbarSupportedContent"
+                  aria-expanded="false"
+                  aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+      
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                <a class="nav-link"
+                   href="{% provider_login_url 'google' %}"
+                   onclick="window.open(this.href,'googleLogin','width=500,height=600');return false;">
+                  로그인
+                </a>
+              </li>
+            </ul>
+      
+            <div class="d-flex align-items-center">
+              <button class="btn btn-outline-primary me-2" type="button">일정 추가</button>
+              <button class="btn btn-outline-primary me-2" type="button">일정 분류 추가</button>
+              <button class="btn btn-outline-primary me-2" type="button">일정 재배치</button>
+              <a class="btn btn-outline-secondary me-2" href="#">주간 보기 ▶</a>
+              <a class="btn btn-outline-secondary me-4" href="#">월간 보기 ▶</a>
+      
+              <div class="form-check form-check-inline me-2">
+                <input class="form-check-input" type="checkbox" id="showDone">
+                <label class="form-check-label" for="showDone">완료 일정 표시</label>
+              </div>
+              <div class="form-check form-check-inline me-2">
+                <input class="form-check-input" type="checkbox" id="showDeadline">
+                <label class="form-check-label" for="showDeadline">마감일 표시</label>
+              </div>
+              <div class="form-check form-check-inline me-4">
+                <input class="form-check-input" type="checkbox" id="showStart">
+                <label class="form-check-label" for="showStart">시행일 표시</label>
+              </div>
+      
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="conditionSetting">
+                <label class="form-check-label ms-2" for="conditionSetting">컨디션 설정</label>
+              </div>
             </div>
+          </div>
         </div>
-    </nav>
+      </nav>
+      
     {% block content %}
     {% endblock %}
 </body>
