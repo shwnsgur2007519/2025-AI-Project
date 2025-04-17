@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% if schedule_list %}
+    <ul>
+    {% for schedule in schedule_list %}
+        <li><a href="/schedule/{{ schedule.id }}/">{{ schedule.task_name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>일정이 없습니다.</p>
+{% endif %}
+
+{% endblock %}
