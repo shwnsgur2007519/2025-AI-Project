@@ -1,0 +1,51 @@
+/* 배경 전체 */
+.calendar-container {
+    position: relative;
+    background: url("../images/calendar-bg.jpg") no-repeat center/cover;
+    min-height: 90vh;
+    color: #fff;
+  }
+  
+  /* 상단 고정 헤더 */
+  .calendar-container .calendar-header {
+    position: sticky;
+    top: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 10;
+  }
+  
+  /* 요일 및 날짜 셀 스타일 */
+  .calendar-grid .row > .col {
+    border: 1px solid rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.2);
+    padding: 0.5rem;
+    min-height: 8rem;
+    overflow: hidden;
+    font-size: 0.85rem;
+  }
+  
+  /* 주말은 약간 색 다르게 */
+  .calendar-grid .row > .col:nth-child(1),
+  .calendar-grid .row > .col:nth-child(7) {
+    background: rgba(255,200,200,0.3);
+  }
+  
+  /* 오늘 셀 강조 */
+  .calendar-grid .today {
+    background: rgba(255,255,255,0.5) !important;
+    font-weight: bold;
+  }
+  
+  /* 음력 표시 작은 글씨 */
+  .calendar-grid .lunar {
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+  
+  /* 헤더 아이콘 조정 */
+  .calendar-header .fa {
+    font-size: 1.2rem;
+    margin-left: 1rem;
+    cursor: pointer;
+  }
+  
