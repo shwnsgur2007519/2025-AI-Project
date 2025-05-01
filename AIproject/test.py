@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt  # type: ignore
 # --------------------------
 # 간단한 스케줄링 환경 클래스
 # --------------------------
+
 class SimpleScheduleEnv:
     def __init__(self):
         self.num_blocks = 10  # 하루를 10개의 블록으로 나눔

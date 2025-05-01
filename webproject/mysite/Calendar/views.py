@@ -3,6 +3,7 @@ import datetime
 from django.shortcuts import render, redirect
 from .models import Schedule
 from .forms import ScheduleForm
+from django.contrib.auth.decorators import login_required
 
 def index(request):
     today = datetime.date.today()
@@ -41,7 +42,7 @@ def index(request):
     }
     return render(request, 'calendar/schedule_list.html', context)
 
-
+@login_required(login_url='common:login')
 def schedule_create(request):
     if request.method == 'POST':
         form = ScheduleForm(request.POST)
