@@ -1,14 +1,61 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load dict_extras %}
+
 {% block content %}
 
-{% if schedule_list %}
-    <ul>
-    {% for schedule in schedule_list %}
-        <li><a href="/schedule/{{ schedule.id }}/">{{ schedule.task_name }}</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>일정이 없습니다.</p>
-{% endif %}
+<link rel="stylesheet" type="text/css" href="{% static 'calendar.css' %}">
 
+
+<div class="d-flex justify-content-between align-items-center my-3">
+    <h2 class="text-center mb-0">{{ year }}년 {{ month }}월</h2>
+    <div>
+        <a class="btn btn-outline-secondary me-2" href="?year={{ prev_year }}&month={{ prev_month }}">◀</a>
+        <a class="btn btn-outline-secondary" href="?year={{ next_year }}&month={{ next_month }}">▶</a>
+    </div>
+</div>
+
+<table class="calendar-table">
+    <thead>
+        <tr>
+            <th>일</th>
+            <th>월</th>
+            <th>화</th>
+            <th>수</th>
+            <th>목</th>
+            <th>금</th>
+            <th>토</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for week in calendar_data %}
+        <tr>
+            {% for day in week %}
+              <td>
+                {% if day != 0 %}
+                  <div class="calendar-date {% if day == today_day %}today{% endif %}">{{ day }}</div>
+                  {% with schedule_map|get_item:day as schedules %}
+                    {% if schedules %}
+                      {% for item in schedules %}
+                        <div class="small text-black-70">{{ item.task_name }}</div>
+                      {% endfor %}
+                    {% endif %}
+                  {% endwith %}
+                {% endif %}
+              </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<script>
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'ArrowLeft') {
+            window.location.href = "?year={{ prev_year }}&month={{ prev_month }}";
+        } else if (event.key === 'ArrowRight') {
+            window.location.href = "?year={{ next_year }}&month={{ next_month }}";
+        }
+    });
+    </script>
+    
 {% endblock %}

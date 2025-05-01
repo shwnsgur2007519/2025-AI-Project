@@ -1,8 +1,10 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 # Create your models here.
 
 class Schedule(models.Model):
+    owner=models.ForeignKey(User, on_delete=models.CASCADE)
     task_name=models.CharField(max_length=50)
     duration_minutes=models.IntegerField(null=True)
     difficulty=models.IntegerField(null=True)
