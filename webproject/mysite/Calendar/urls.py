@@ -6,4 +6,6 @@ app_name='calendar'
 urlpatterns = [
     path('', views.index, name='index'),
     path('schedule/create/', views.schedule_create, name='schedule_create'),
+    path('schedule/<int:pk>/edit/', views.schedule_edit, name='schedule_edit'),
+    path('schedule/list/', views.schedule_list, name='schedule_list'),
 ]

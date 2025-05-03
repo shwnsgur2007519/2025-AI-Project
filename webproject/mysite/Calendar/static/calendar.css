@@ -6,14 +6,16 @@
   text-align: center;
 }
 
-.calendar-table th,
-.calendar-table td {
+.calendar-table tr {
   border: 1px solid #ccc;
   vertical-align: top;
   padding: 5px;
 }
 
 .calendar-table td {
+  border: 1px solid #ccc;
+  vertical-align: top;
+  padding: 5px;
   height: calc((100vh - 150px) / 7); /* 최대 6주 기준 높이 */
 }
 

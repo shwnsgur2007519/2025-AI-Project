@@ -1,61 +1,178 @@
 {% extends 'base.html' %}
-{% load static %}
 {% load dict_extras %}
 
 {% block content %}
+<div class="container py-4 pb-0">
 
-<link rel="stylesheet" type="text/css" href="{% static 'calendar.css' %}">
-
-
-<div class="d-flex justify-content-between align-items-center my-3">
-    <h2 class="text-center mb-0">{{ year }}년 {{ month }}월</h2>
+  <!-- 월 제목과 이전/다음 버튼 -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">{{ year }}년 {{ month }}월</h2>
     <div>
-        <a class="btn btn-outline-secondary me-2" href="?year={{ prev_year }}&month={{ prev_month }}">◀</a>
-        <a class="btn btn-outline-secondary" href="?year={{ next_year }}&month={{ next_month }}">▶</a>
+      <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-outline-secondary me-2">◀</a>
+      <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-outline-secondary">▶</a>
     </div>
-</div>
+  </div>
 
-<table class="calendar-table">
-    <thead>
+  <!-- 달력 테이블 -->
+  <div class="table-responsive">
+    <table class="table table-bordered text-center align-middle mb-0" style="table-layout: fixed; height: calc(100vh - 200px);">
+      <thead class="table-light">
         <tr>
-            <th>일</th>
-            <th>월</th>
-            <th>화</th>
-            <th>수</th>
-            <th>목</th>
-            <th>금</th>
-            <th>토</th>
+          <th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th>
         </tr>
-    </thead>
-    <tbody>
+      </thead>
+      <tbody>
         {% for week in calendar_data %}
         <tr>
-            {% for day in week %}
-              <td>
-                {% if day != 0 %}
-                  <div class="calendar-date {% if day == today_day %}today{% endif %}">{{ day }}</div>
-                  {% with schedule_map|get_item:day as schedules %}
-                    {% if schedules %}
-                      {% for item in schedules %}
-                        <div class="small text-black-70">{{ item.task_name }}</div>
-                      {% endfor %}
-                    {% endif %}
-                  {% endwith %}
+          {% for day in week %}
+          <td class="align-top px-1 py-0" style="height: calc((100vh - 200px) / 6); overflow: hidden;">
+            {% if day != 0 %}
+              <!-- 날짜 숫자 (오늘이면 동그라미) -->
+              {% if day == today_day %}
+                <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center mx-auto mb-0 fw-bold"
+                     style="width: 1.5rem; height: 1.5rem;">
+                  {{ day }}
+                </div>
+              {% else %}
+                <div class="fw-bold mb-0">{{ day }}</div>
+              {% endif %}
+
+              <!-- 일정 리스트 -->
+              {% with schedule_map|get_item:day as schedules %}
+                {% if schedules %}
+                <div class="d-flex flex-column gap-1 align-items-start">
+                  {% for item in schedules|slice:":3" %}
+                    <div class="bg-info text-white rounded px-0 py-0 small text-truncate w-100"
+                    role="button"
+                    onclick="openTaskDetail(this)"
+                    data-id="{{ item.id }}"
+                    data-task="{{ item.task_name }}"
+                    data-subject="{{ item.subject }}"
+                    data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
+                    data-fixed="{{ item.is_fixed }}"
+                    data-exam="{{ item.is_exam_task }}"
+                    data-owner="{{ item.owner.id }}">{{ item.task_name }}</div>
+                  {% endfor %}
+                  {% if schedules|length > 3 %}
+                  <div class="text-muted small text-end w-100">
+                    <a href="#" class="text-decoration-none" data-day="{{ day }}" onclick="openScheduleModal(this)">
+                      +{{ schedules|length|add:"-3" }}개 더보기
+                    </a>
+                  </div>
+                  {% endif %}
+                </div>
                 {% endif %}
-              </td>
-            {% endfor %}
+              {% endwith %}
+            {% endif %}
+
+          </td>
+          {% endfor %}
         </tr>
         {% endfor %}
-    </tbody>
-</table>
+        <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="scheduleModalLabel">일정 목록</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+              </div>
+              <div class="modal-body">
+                <ul class="list-group" id="scheduleModalList">
+                  <!-- JavaScript가 여기에 일정 항목들을 삽입합니다 -->
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 일정 상세 보기 모달 -->
+        <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="taskDetailModalLabel">일정 상세 정보</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+              </div>
+              <div class="modal-body">
+                <p><strong>과목:</strong> <span id="detailSubject"></span></p>
+                <p><strong>마감일:</strong> <span id="detailDeadline"></span></p>
+                <p><strong>고정 일정:</strong> <span id="detailFixed"></span></p>
+                <p><strong>시험 여부:</strong> <span id="detailExam"></span></p>
+              </div>
+              <div class="modal-footer">
+                <a href="#" id="editTaskLink" class="btn btn-primary d-none">수정</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
 <script>
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'ArrowLeft') {
-            window.location.href = "?year={{ prev_year }}&month={{ prev_month }}";
-        } else if (event.key === 'ArrowRight') {
-            window.location.href = "?year={{ next_year }}&month={{ next_month }}";
-        }
+const scheduleData = JSON.parse('{{ schedule_json|escapejs }}');
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'ArrowLeft') {
+    window.location.href = "?year={{ prev_year }}&month={{ prev_month }}";
+  } else if (event.key === 'ArrowRight') {
+    window.location.href = "?year={{ next_year }}&month={{ next_month }}";
+  }
+});
+function openScheduleModal(el) {
+  const day = el.getAttribute('data-day');
+  const listEl = document.getElementById('scheduleModalList');
+  listEl.innerHTML = '';
+
+  if (scheduleData[day]) {
+    scheduleData[day].forEach(item => {
+      const li = document.createElement('li');
+      li.className = 'list-group-item';
+      li.role = 'button';
+      li.textContent = item.task_name;
+
+      // ✨ data-* 속성 추가
+      li.dataset.task = item.task_name;
+      li.dataset.subject = item.subject;
+      li.dataset.deadline = item.deadline;
+      li.dataset.fixed = item.is_fixed;
+      li.dataset.exam = item.is_exam_task;
+      li.dataset.id = item.id;
+      li.dataset.owner = item.owner_id;
+
+      li.onclick = () => openTaskDetail(li); // ✨ 클릭 시 상세 보기
+      listEl.appendChild(li);
     });
-    </script>
+  }
+
+  const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+  modal.show();
+}
+const currentUserId = {{ user_id|default:"null" }};
+
+function openTaskDetail(el) {
+  document.getElementById("taskDetailModalLabel").textContent = el.dataset.task;
+  document.getElementById("detailSubject").textContent = el.dataset.subject || '없음';
+  document.getElementById("detailDeadline").textContent = el.dataset.deadline || '없음';
+  document.getElementById("detailFixed").textContent = el.dataset.fixed === "true" ? "예" : "아니오";
+  document.getElementById("detailExam").textContent = el.dataset.exam === "true" ? "예" : "아니오";
+
+  //수정 링크 설정
+
+  const id = el.dataset.id;
+    const editLink = document.getElementById("editTaskLink");
+    editLink.href = `/calendar/schedule/${id}/edit/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     
+  // 소유자 비교 후 수정 버튼 보이기/숨기기
+  const ownerId = parseInt(el.dataset.owner);
+  if (currentUserId === ownerId) {
+    editLink.classList.remove("d-none");
+  } else {
+    editLink.classList.add("d-none");
+  }
+
+  const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+  modal.show();
+}
+</script>
 {% endblock %}

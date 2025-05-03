@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-4">
-    <h2>일정 추가</h2>
+    <h2>{{ is_edit|yesno:"일정 수정,일정 추가" }}</h2>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}

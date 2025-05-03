@@ -1,9 +1,12 @@
 import calendar
 import datetime
+import json
 from django.shortcuts import render, redirect
 from .models import Schedule
 from .forms import ScheduleForm
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
+from django.utils.http import url_has_allowed_host_and_scheme
 
 def index(request):
     today = datetime.date.today()
@@ -13,33 +16,56 @@ def index(request):
     cal = calendar.Calendar(firstweekday=6)
     month_days = cal.monthdayscalendar(year, month)
 
-    # 일정 불러오기: 로그인한 사용자 기준
     if request.user.is_authenticated:
-        schedules = Schedule.objects.filter(deadline__year=year, deadline__month=month, owner=request.user)
+        schedules = Schedule.objects.filter(
+            deadline__year=year,
+            deadline__month=month,
+            owner=request.user
+        )
     else:
         schedules = Schedule.objects.none()
-    
-    # 날짜별 일정 딕셔너리
+
+    # 날짜별 일정 분류
     schedule_map = {}
     for schedule in schedules:
         date_key = schedule.deadline.day
         schedule_map.setdefault(date_key, []).append(schedule)
 
-    # 이전/다음 달 계산
+    # JSON용 schedule 정리 (모달용)
+    schedule_json = {
+    day: [
+        {
+            'id': s.id,
+            'task_name': s.task_name,
+            'subject': s.subject,
+            'deadline': s.deadline.strftime('%Y-%m-%d %H:%M') if s.deadline else '',
+            'is_fixed': s.is_fixed,
+            'is_exam_task': s.is_exam_task,
+            'owner_id': s.owner.id,
+        }
+        for s in schedule_list
+    ]
+    for day, schedule_list in schedule_map.items()
+}
+
+
     prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
     next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
-    # print(schedule_map)
+
     context = {
         'year': year,
         'month': month,
         'calendar_data': month_days,
         'schedule_map': schedule_map,
+        'schedule_json': json.dumps(schedule_json),  # ✨ 추가됨
         'prev_year': prev_year,
         'prev_month': prev_month,
         'next_year': next_year,
         'next_month': next_month,
-        'today_day': datetime.date.today().day if year == datetime.date.today().year and month == datetime.date.today().month else None,
+        'today_day': today.day if year == today.year and month == today.month else None,
+        'user_id': request.user.id if request.user.is_authenticated else None,
     }
+
     return render(request, 'calendar/schedule_list.html', context)
 
 @login_required(login_url='common:login')
@@ -48,9 +74,39 @@ def schedule_create(request):
         form = ScheduleForm(request.POST)
         if form.is_valid():
             schedule = form.save(commit=False)
-            schedule.owner = request.user  # 로그인 사용자 지정
+            schedule.owner = request.user
             schedule.save()
             return redirect('calendar:index')
     else:
         form = ScheduleForm()
-    return render(request, 'calendar/schedule_form.html', {'form': form})
+    return render(request, 'calendar/schedule_form.html', {'form': form, 'is_edit': False})
+
+
+@login_required(login_url='common:login')
+def schedule_edit(request, pk):
+    schedule = get_object_or_404(Schedule, pk=pk, owner=request.user)
+    next_url = request.GET.get('next') or request.POST.get('next')  # GET/POST 모두 대응
+
+    if request.method == 'POST':
+        form = ScheduleForm(request.POST, instance=schedule)
+        if form.is_valid():
+            form.save()
+
+            # 보안 체크 포함
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
+            return redirect('calendar:index')
+    else:
+        form = ScheduleForm(instance=schedule)
+
+    return render(request, 'calendar/schedule_form.html', {
+        'form': form,
+        'is_edit': True,
+        'next': next_url  # 템플릿에 전달
+    })
+
+
+@login_required(login_url='common:login')
+def schedule_list(request):
+    schedules = Schedule.objects.filter(owner=request.user).order_by('deadline')
+    return render(request, 'calendar/schedule_list_page.html', {'schedules': schedules})

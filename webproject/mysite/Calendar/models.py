@@ -29,3 +29,6 @@ class Schedule(models.Model):
         if self.is_fixed and self.end_time is None:
             errors['end_time']='고정 일정이면 반드시 입력해야 합니다'
         raise ValidationError(errors)
+    
+    def __str__(self):
+        return f"{self.task_name}({self.owner})"

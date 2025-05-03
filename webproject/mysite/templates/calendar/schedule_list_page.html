@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-4">전체 일정 목록</h2>
+
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>일정명</th>
+        <th>과목</th>
+        <th>마감일</th>
+        <th>고정</th>
+        <th>시험</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in schedules %}
+      <tr>
+        <td class="fw-bold">{{ item.task_name }}</td>
+        <td>{{ item.subject }}</td>
+        <td>{{ item.deadline|date:"Y-m-d H:i" }}</td>
+        <td>{{ item.is_fixed|yesno:"✅,❌" }}</td>
+        <td>{{ item.is_exam_task|yesno:"📘,❌" }}</td>
+        <td>
+          <a href="/calendar/schedule/{{ item.id }}/edit/?next={{ request.get_full_path }}" class="btn btn-sm btn-outline-primary">수정</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center text-muted">등록된 일정이 없습니다.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
