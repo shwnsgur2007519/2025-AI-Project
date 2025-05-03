@@ -46,7 +46,7 @@ def index(request):
         for s in schedule_list
     ]
     for day, schedule_list in schedule_map.items()
-}
+    }
 
 
     prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
