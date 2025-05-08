@@ -17,6 +17,8 @@ function openScheduleModal(el) {
       li.className = 'list-group-item';
       li.role = 'button';
       li.textContent = item.task_name;
+      li.style.backgroundColor = item.color;
+      li.style.webkitTextFillColor = 'white';
 
       // ✨ data-* 속성 추가
       li.dataset.task = item.task_name;
@@ -27,12 +29,13 @@ function openScheduleModal(el) {
       li.dataset.id = item.id;
       li.dataset.owner = item.owner_id;
 
-      li.onclick = () => openTaskDetail(li); // ✨ 클릭 시 상세 보기
+      li.onclick = () => openTaskDetail(li);
       listEl.appendChild(li);
     });
   }
 
-  const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+  const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));  
+  // modal.classList.add()
   modal.show();
 }
 

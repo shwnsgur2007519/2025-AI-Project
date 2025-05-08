@@ -2,8 +2,8 @@ import calendar
 import datetime
 import json
 from django.shortcuts import render, redirect
-from .models import Schedule
-from .forms import ScheduleForm
+from .models import Schedule, ScheduleType
+from .forms import ScheduleForm, ScheduleTypeForm
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -42,6 +42,7 @@ def index(request):
             'is_fixed': s.is_fixed,
             'is_exam_task': s.is_exam_task,
             'owner_id': s.owner.id,
+            'color': s.color,
         }
         for s in schedule_list
     ]
@@ -57,7 +58,7 @@ def index(request):
         'month': month,
         'calendar_data': month_days,
         'schedule_map': schedule_map,
-        'schedule_json': json.dumps(schedule_json),  # ✨ 추가됨
+        'schedule_json': json.dumps(schedule_json),
         'prev_year': prev_year,
         'prev_month': prev_month,
         'next_year': next_year,
@@ -71,14 +72,14 @@ def index(request):
 @login_required(login_url='common:login')
 def schedule_create(request):
     if request.method == 'POST':
-        form = ScheduleForm(request.POST)
+        form = ScheduleForm(request.POST, owner=request.user)
         if form.is_valid():
             schedule = form.save(commit=False)
             schedule.owner = request.user
             schedule.save()
             return redirect('calendar:index')
     else:
-        form = ScheduleForm()
+        form = ScheduleForm(owner=request.user)
     return render(request, 'calendar/schedule_form.html', {'form': form, 'is_edit': False})
 
 
@@ -88,7 +89,7 @@ def schedule_edit(request, pk):
     next_url = request.GET.get('next') or request.POST.get('next')  # GET/POST 모두 대응
 
     if request.method == 'POST':
-        form = ScheduleForm(request.POST, instance=schedule)
+        form = ScheduleForm(request.POST, instance=schedule, owner=request.user)
         if form.is_valid():
             form.save()
 
@@ -97,7 +98,7 @@ def schedule_edit(request, pk):
                 return redirect(next_url)
             return redirect('calendar:index')
     else:
-        form = ScheduleForm(instance=schedule)
+        form = ScheduleForm(instance=schedule, owner=request.user)
 
     return render(request, 'calendar/schedule_form.html', {
         'form': form,
@@ -110,3 +111,41 @@ def schedule_edit(request, pk):
 def schedule_list(request):
     schedules = Schedule.objects.filter(owner=request.user).order_by('deadline')
     return render(request, 'calendar/schedule_list_page.html', {'schedules': schedules})
+
+def schedule_type_create(request):
+    if request.method == 'POST':
+        form = ScheduleTypeForm(request.POST)
+        if form.is_valid():
+            schedule_type = form.save(commit=False)
+            schedule_type.owner = request.user  # 소유자 지정
+            schedule_type.save()
+            return redirect('calendar:schedule_type_list')  # 저장 후 이동
+    else:
+        form = ScheduleTypeForm()
+    
+    return render(request, 'calendar/schedule_type_create.html', {'form': form})
+
+@login_required(login_url='common:login')
+def schedule_type_list(request):
+    types = ScheduleType.objects.filter(owner=request.user)
+    return render(request, 'calendar/schedule_type_list.html', {'types': types})
+
+@login_required(login_url='common:login')
+def schedule_type_edit(request, pk):
+    schedule_type = get_object_or_404(ScheduleType, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        form = ScheduleTypeForm(request.POST, instance=schedule_type)
+        if form.is_valid():
+            form.save()
+            return redirect('calendar:schedule_type_list')
+    else:
+        form = ScheduleTypeForm(instance=schedule_type)
+    return render(request, 'calendar/schedule_type_form.html', {'form': form, 'is_edit': True})
+
+@login_required(login_url='common:login')
+def schedule_type_delete(request, pk):
+    schedule_type = get_object_or_404(ScheduleType, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        schedule_type.delete()
+        return redirect('calendar:schedule_type_list')
+    return render(request, 'calendar/schedule_type_confirm_delete.html', {'type': schedule_type})

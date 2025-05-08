@@ -42,16 +42,18 @@
                 {% if schedules %}
                 <div class="d-flex flex-column gap-1 align-items-start">
                   {% for item in schedules|slice:":3" %}
-                    <div class="bg-info text-white rounded px-0 py-0 small text-truncate w-100"
-                    role="button"
-                    onclick="openTaskDetail(this)"
-                    data-id="{{ item.id }}"
-                    data-task="{{ item.task_name }}"
-                    data-subject="{{ item.subject }}"
-                    data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
-                    data-fixed="{{ item.is_fixed }}"
-                    data-exam="{{ item.is_exam_task }}"
-                    data-owner="{{ item.owner.id }}">{{ item.task_name }}</div>
+                  <div class="text-white rounded px-0 py-0 small text-truncate w-100"
+                  role="button"
+                  onclick="openTaskDetail(this)"
+                  data-id="{{ item.id }}"
+                  data-task="{{ item.task_name }}"
+                  data-subject="{{ item.subject }}"
+                  data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
+                  data-fixed="{{ item.is_fixed }}"
+                  data-exam="{{ item.is_exam_task }}"
+                  data-owner="{{ item.owner.id }}"
+                  style="background-color: {{item.color}};"
+                  >{{ item.task_name }}</div>
                   {% endfor %}
                   {% if schedules|length > 3 %}
                   <div class="text-muted small text-end w-100">

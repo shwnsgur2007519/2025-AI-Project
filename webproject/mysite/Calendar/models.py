@@ -2,14 +2,21 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 # Create your models here.
+class ScheduleType(models.Model):
+    name=models.CharField(max_length=50,blank=True)
+    owner=models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return f"{self.name}"
+
 
 class Schedule(models.Model):
     owner=models.ForeignKey(User, on_delete=models.CASCADE)
     task_name=models.CharField(max_length=50)
-    duration_minutes=models.IntegerField(null=True)
-    difficulty=models.IntegerField(null=True)
-    importance=models.IntegerField(null=True)
-    task_type=models.CharField(max_length=50,blank=True)
+    duration_minutes=models.IntegerField(null=True, blank=True)
+    difficulty=models.IntegerField(null=True, blank=True)
+    importance=models.IntegerField(null=True, blank=True)
+    task_type = models.ForeignKey('ScheduleType', null=True, blank=True, on_delete=models.SET_NULL)
     subject=models.CharField(max_length=50, blank=True)
     is_exam_task=models.BooleanField(default=False)
     deadline=models.DateTimeField(null=True ,blank=True)
@@ -17,6 +24,8 @@ class Schedule(models.Model):
     end_time=models.DateTimeField(null=True ,blank=True)
     is_fixed=models.BooleanField(default=False)
     exam=models.ForeignKey('self',default=None, on_delete=models.SET_DEFAULT, null=True ,blank=True)
+    color = models.CharField(max_length=7, blank=True, default='#6c8df5')
+    is_done = models.BooleanField(default=False)
     def clean(self):
         # 조건: 시험 일정이면 deadline은 필수
         errors={}
