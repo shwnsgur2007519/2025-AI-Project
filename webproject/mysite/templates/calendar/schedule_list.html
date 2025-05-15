@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load dict_extras %}
+{% load static %}
 
 {% block content %}
 <div class="container py-4 pb-0">
@@ -40,42 +41,11 @@
               <!-- 일정 리스트 -->
               {% with schedule_map|get_item:day as schedule_pairs %}
                 {% if schedule_pairs %}
-                <div class="d-flex flex-column gap-1 align-items-start">
-                  {% for type, item in schedule_pairs|slice:":3" %}
-                    <div class="text-white rounded px-0 py-0 small text-truncate w-100"
-                        role="button"
-                        onclick="openTaskDetail(this)"
-                        data-id="{{ item.id }}"
-                        data-task="{{ item.task_name }}"
-                        data-subject="{{ item.subject }}"
-                        data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
-                        data-fixed="{{ item.is_fixed }}"
-                        data-exam="{{ item.is_exam_task }}"
-                        data-owner="{{ item.owner.id }}"
-                        style="background-color: {% if type == 'start_time' %}#0d6efd{% else %}{{ item.color }}{% endif %};"
-                        data-type="{{ type }}"
-                        data-done="{{ item.is_done|yesno:'true,false' }}">
-                      {% if type == 'start_time' %}
-                      ✓
-                      {%endif%}
-                      {{ item.task_name }}
-                      <!-- <div class="small {% if type == 'start_time' %}text-light{% endif %}">
-                        {% if type == 'start_time' %}
-                          시작: {{ item.start_time|date:"H:i" }}
-                        {% else %}
-                          마감: {{ item.deadline|date:"H:i" }}
-                        {% endif %}
-                      </div> -->
-                    </div>
-                  {% endfor %}
-
-                  {% if schedule_pairs|length > 3 %}
-                  <div class="text-muted small text-end w-100">
-                    <a href="#" class="text-decoration-none" data-day="{{ day }}" onclick="openScheduleModal(this)">
-                      +{{ schedule_pairs|length|add:"-3" }}개 더보기
-                    </a>
-                  </div>
-                  {% endif %}
+                <div class="d-flex flex-column gap-1 align-items-start" id="cell-{{day}}">
+                  <!-- <div id="cell-{{ day }}"> -->
+                    <!-- 이 안을 JS가 채움 -->
+                  <!-- </div> -->
+                   
                 </div>
                 {% endif %}
               {% endwith %}
@@ -118,6 +88,7 @@
               </div>
               <div class="modal-footer">
                 <a href="#" id="editTaskLink" class="btn btn-primary d-none">수정</a>
+                <button type="button" class="btn btn-success" id="markDoneBtn">완료</button>
               </div>
             </div>
           </div>
@@ -133,4 +104,5 @@
   window.next_year=JSON.parse("{{ next_year }}");
   window.next_month=JSON.parse("{{ next_month }}");
 </script>
+<script src="{% static 'calendar_list.js' %}"></script>
 {% endblock %}

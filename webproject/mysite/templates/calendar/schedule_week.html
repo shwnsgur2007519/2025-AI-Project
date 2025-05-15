@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 {% load dict_extras %}
+{% load static %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center my-3">
   <a class="btn btn-outline-secondary mx-1" href="?date={{ prev_date }}">◀</a>
@@ -25,39 +27,7 @@
     <tr>
       <th>{{ hour|stringformat:"02d" }}:00</th>
       {% for day in days %}
-        <td class="px-1 py-0">
-          {% with schedule_map|dict_get:day as schedule_pairs %}
-            {% for type, item in schedule_pairs %}
-              {% if type == 'start_time' and item.start_time.hour == hour %}
-                <div class="bg-primary text-white rounded px-1 py-1 small text-truncate w-100 my-1"
-                    role="button"
-                    onclick="openTaskDetail(this)"
-                    data-id="{{ item.id }}"
-                    data-task="{{ item.task_name }}"
-                    data-subject="{{ item.subject }}"
-                    data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
-                    data-fixed="{{ item.is_fixed }}"
-                    data-exam="{{ item.is_exam_task }}"
-                    data-owner="{{ item.owner.id }}">
-                  ✓ {{ item.task_name }}
-                </div>
-              {% elif type == 'deadline' and item.deadline.hour == hour %}
-                <div class="text-white rounded px-1 py-1 small text-truncate w-100 my-1"
-                    role="button"
-                    onclick="openTaskDetail(this)"
-                    data-id="{{ item.id }}"
-                    data-task="{{ item.task_name }}"
-                    data-subject="{{ item.subject }}"
-                    data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
-                    data-fixed="{{ item.is_fixed }}"
-                    data-exam="{{ item.is_exam_task }}"
-                    data-owner="{{ item.owner.id }}"
-                    style="background-color: {{ item.color }};">
-                  {{ item.task_name }}
-                </div>
-              {% endif %}
-            {% endfor %}
-          {% endwith %}
+        <td class="px-1 py-0" id="cell-{{day|date:'Y-m-d'}}-{{hour}}">
         </td>
       {% endfor %}
     </tr>
@@ -79,6 +49,7 @@
             </div>
             <div class="modal-footer">
               <a href="#" id="editTaskLink" class="btn btn-primary d-none">수정</a>
+              <button type="button" class="btn btn-success" id="markDoneBtn">완료</button>
             </div>
           </div>
         </div>
@@ -89,4 +60,5 @@
   window.prev_date='{{prev_date}}';
   window.next_date='{{next_date}}';
 </script>
+<script src="{% static 'calendar_week.js' %}"></script>
 {% endblock %}

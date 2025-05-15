@@ -58,6 +58,8 @@ def index(request):
             'is_exam_task': s.is_exam_task,
             'owner_id': s.owner.id,
             'color': s.color,
+            'is_done':s.is_done,
+            'type':type,
         }
         for type, s in schedule_list
     ]
@@ -122,9 +124,33 @@ def schedule_week(request):
         schedule_map[day].sort(key=lambda pair: 0 if pair[0] == "deadline" else 1)
 
 
+    schedule_json={}
+
+    for date, pairs in schedule_map.items():
+        date_str = date.strftime("%Y-%m-%d")
+        print(date)
+        schedule_json[date_str] = []
+
+        for type_, s in pairs:
+            schedule_json[date_str].append({
+                'id': s.id,
+                'task_name': s.task_name,
+                'type': type_,
+                'subject': s.subject,
+                'deadline': s.deadline.strftime('%Y-%m-%d %H:%M') if s.deadline else '',
+                'start_time': s.start_time.strftime('%Y-%m-%d %H:%M') if s.start_time else '',
+                'is_fixed': s.is_fixed,
+                'is_exam_task': s.is_exam_task,
+                'owner_id': s.owner.id,
+                'color': s.color,
+                'is_done': s.is_done,
+            })
+
+    
     context = {
         'days': days,
         'schedule_map': schedule_map,
+        'schedule_json': json.dumps(schedule_json),
         'hours': range(0, 24),
         'user_id': request.user.id if request.user.is_authenticated else None,
         'prev_date': (start_of_week - datetime.timedelta(days=7)).strftime('%Y-%m-%d'),
