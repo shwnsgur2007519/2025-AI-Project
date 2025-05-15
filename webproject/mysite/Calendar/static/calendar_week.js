@@ -12,15 +12,12 @@ function getFilterSettings() {
 function shouldShow(item, settings) {
   const isDone = item.is_done;
   const type = item.type;
-
   if (type === "deadline") {
     return settings.showDeadline && (!isDone || (isDone && settings.showDone));
   }
-
   if (type === "start_time") {
     return settings.showStart && (!isDone || (isDone && settings.showDone));
   }
-
   return false;
 }
 
@@ -55,7 +52,7 @@ function renderWeekSchedule() {
 
       const div = document.createElement("div");
       div.className = "text-white rounded px-1 py-1 small text-truncate w-100 my-1";
-      div.style.backgroundColor = item.type === "start_time" ? "#0d6efd" : item.color;
+      div.style.backgroundColor = item.type === "start_time" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
       div.textContent = item.type === "start_time" ? `✓ ${item.task_name}` : item.task_name;
 
       div.setAttribute("role", "button");
@@ -67,6 +64,7 @@ function renderWeekSchedule() {
       div.dataset.fixed = item.is_fixed;
       div.dataset.exam = item.is_exam_task;
       div.dataset.owner = item.owner_id;
+      div.dataset.done = item.is_done;
 
       cell.appendChild(div);
     });
@@ -85,15 +83,26 @@ function openTaskDetail(el) {
   const editLink = document.getElementById("editTaskLink");
   editLink.href = `/calendar/schedule/${id}/edit/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
 
-  const ownerId = parseInt(el.dataset.owner);
-  if (window.currentUserId === ownerId) {
-    editLink.classList.remove("d-none");
+  const isDone = el.dataset.done === "true";
+  
+  const doneBtn = document.getElementById("markDoneBtn");
+  const undoneBtn = document.getElementById("unmarkDoneBtn");
+
+  if (isDone) {
+    doneBtn.classList.add("d-none");
+    undoneBtn.classList.remove("d-none");
   } else {
-    editLink.classList.add("d-none");
+    doneBtn.classList.remove("d-none");
+    undoneBtn.classList.add("d-none");
   }
 
   const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
   modal.show();
+}
+
+function reload(){
+    clearWeekSchedule();
+    renderWeekSchedule();
 }
 
 // ✅ 초기화 및 이벤트 연결
@@ -102,8 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   ["showDone", "showDeadline", "showStart"].forEach(id => {
     document.getElementById(id).addEventListener("change", () => {
-      clearWeekSchedule();
-      renderWeekSchedule();
+        reload();
     });
   });
 });

@@ -36,6 +36,9 @@
         <!-- 버튼 -->
         <button type="submit" class="btn btn-primary my-1">저장</button>
         <a href="{% url 'calendar:index' %}" class="btn btn-secondary my-1">취소</a>
+        {% if is_edit %}
+        <a href="{% url 'calendar:schedule_delete' id %}" class="btn btn-danger">삭제</a>
+        {% endif %}
     </form>
 </div>
 <script>

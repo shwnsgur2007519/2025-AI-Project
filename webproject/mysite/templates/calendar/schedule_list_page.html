@@ -23,7 +23,8 @@
         <td>{{ item.is_fixed|yesno:"✅,❌" }}</td>
         <td>{{ item.is_exam_task|yesno:"📘,❌" }}</td>
         <td>
-          <a href="/calendar/schedule/{{ item.id }}/edit/?next={{ request.get_full_path }}" class="btn btn-sm btn-outline-primary">수정</a>
+          <a href="{% url 'calendar:schedule_edit' item.id %}?next={{ request.get_full_path }}" class="btn btn-sm btn-outline-primary">수정</a>
+          <a href="{% url 'calendar:schedule_delete' item.id %}" class="btn btn-sm btn-outline-danger">삭제</a>
         </td>
       </tr>
       {% empty %}

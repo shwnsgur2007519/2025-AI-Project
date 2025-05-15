@@ -39,7 +39,7 @@ function openScheduleModal(el) {
         const li = document.createElement('li');
         li.className = 'list-group-item';
         li.role = 'button';
-        li.style.backgroundColor = item.type === 'deadline' ? item.color : '#0d6efd';
+        li.style.backgroundColor = item.type === "start_time" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
         li.style.webkitTextFillColor = 'white';
         li.textContent = item.type === 'start_time' ? '✓ ' + item.task_name : item.task_name;
 
@@ -72,13 +72,20 @@ function openTaskDetail(el) {
   const id = el.dataset.id;
   const editLink = document.getElementById("editTaskLink");
   editLink.href = `/calendar/schedule/${id}/edit/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+  editLink.classList.remove("d-none");
+  const isDone = el.dataset.done === "true";
 
-  const ownerId = parseInt(el.dataset.owner);
-  if (window.currentUserId === ownerId) {
-    editLink.classList.remove("d-none");
+  const doneBtn = document.getElementById("markDoneBtn");
+  const undoneBtn = document.getElementById("unmarkDoneBtn");
+
+  if (isDone) {
+    doneBtn.classList.add("d-none");
+    undoneBtn.classList.remove("d-none");
   } else {
-    editLink.classList.add("d-none");
+    doneBtn.classList.remove("d-none");
+    undoneBtn.classList.add("d-none");
   }
+
 
   const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
   modal.show();
@@ -127,6 +134,7 @@ function updateFilterState() {
   window.showStart = document.getElementById("showStart").checked;
 }
 
+// 스케줄 렌더링링
 function renderSchedules() {
   const settings = getFilterSettings();
 
@@ -143,7 +151,7 @@ function renderSchedules() {
     previewItems.forEach(item => {
       const div = document.createElement("div");
       div.className = "text-white rounded px-0 py-0 small text-truncate w-100";
-      div.style.backgroundColor = item.type === "start_time" ? "#0d6efd" : item.color;
+      div.style.backgroundColor = item.type === "start_time" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
       div.style.display="block";
       // data-* 속성 추가 (DOM 필터링용)
       div.dataset.type = item.type;
@@ -184,16 +192,17 @@ function renderSchedules() {
   }
 }
 
+function reload(){
+  updateVisibility(); // DOM 숨김
+  renderSchedules();  // 전체 다시 그리기
+}
 
 ["showDone", "showDeadline", "showStart"].forEach(id => {
   document.getElementById(id).addEventListener("change", () => {
-    updateVisibility(); // DOM 숨김
-    renderSchedules();  // 전체 다시 그리기
+    reload();
   });
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  updateVisibility(); // DOM 숨김
-  renderSchedules();  // 전체 다시 그리기
+  reload();
 });
-

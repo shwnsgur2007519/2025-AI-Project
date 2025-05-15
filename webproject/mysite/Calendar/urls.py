@@ -13,4 +13,7 @@ urlpatterns = [
     path('schedule-type/<int:pk>/edit/', views.schedule_type_edit, name='schedule_type_edit'),
     path('schedule-type/<int:pk>/delete/', views.schedule_type_delete, name='schedule_type_delete'),
     path('week/', views.schedule_week, name='schedule_week'),
+    path('schedule/<int:pk>/mark_done/', views.schedule_mark_done, name='schedule_mark_done'),
+    path('schedule/<int:pk>/unmark_done/', views.schedule_unmark_done, name='schedule_unmark_done'),
+    path('schedule/<int:pk>/delete/', views.schedule_delete, name='schedule_delete'),
 ]

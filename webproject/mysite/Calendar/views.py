@@ -9,6 +9,8 @@ from django.shortcuts import get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.timezone import make_aware
 from django.utils import timezone
+from django.contrib import messages
+from django.urls import reverse
 
 def index(request):
     today = datetime.datetime.today()
@@ -194,7 +196,8 @@ def schedule_edit(request, pk):
     return render(request, 'calendar/schedule_form.html', {
         'form': form,
         'is_edit': True,
-        'next': next_url  # 템플릿에 전달
+        'next': next_url,  # 템플릿에 전달
+        'id': pk,
     })
 
 
@@ -240,3 +243,41 @@ def schedule_type_delete(request, pk):
         schedule_type.delete()
         return redirect('calendar:schedule_type_list')
     return render(request, 'calendar/schedule_type_confirm_delete.html', {'type': schedule_type})
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+
+@csrf_exempt
+@login_required
+def schedule_mark_done(request, pk):
+    if request.method == 'POST':
+        try:
+            schedule = Schedule.objects.get(pk=pk, owner=request.user)
+            schedule.is_done = True
+            schedule.save()
+            return JsonResponse({'success': True})
+        except Schedule.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Not found'}, status=404)
+    return JsonResponse({'success': False, 'error': 'Invalid method'}, status=400)
+
+@csrf_exempt
+@login_required
+def schedule_unmark_done(request, pk):
+    if request.method == 'POST':
+        try:
+            schedule = Schedule.objects.get(pk=pk, owner=request.user)
+            schedule.is_done = False
+            schedule.save()
+            return JsonResponse({'success': True})
+        except Schedule.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Not found'}, status=404)
+    return JsonResponse({'success': False, 'error': 'Invalid method'}, status=400)
+
+@login_required(login_url='common:login')
+def schedule_delete(request, pk):
+    schedule = get_object_or_404(Schedule, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        schedule.delete()
+        return redirect('calendar:schedule_list')
+    return render(request, 'calendar/schedule_confirm_delete.html', {'type': schedule})
