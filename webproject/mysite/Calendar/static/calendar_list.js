@@ -11,6 +11,7 @@ document.addEventListener('keydown', function (event) {
 
   // 월간 보기: /calendar/ 또는 /calendar/index/
   } else if (path === '/calendar/' || path.includes('/calendar/index')) {
+    console.log(window.prev_year, window.prev_month)
     if (event.key === 'ArrowLeft') {
       window.location.href = '?year=' + window.prev_year + '&month=' + window.prev_month;
     } else if (event.key === 'ArrowRight') {
@@ -79,3 +80,30 @@ function openTaskDetail(el) {
   const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
   modal.show();
 }
+
+
+
+function updateVisibility() {
+  const showDone = document.getElementById("showDone").checked;
+  const showDeadline = document.getElementById("showDeadline").checked;
+  const showStart = document.getElementById("showStart").checked;
+
+  document.querySelectorAll("[data-type='deadline']").forEach(el => {
+    const isDone = el.dataset.done === "true";
+
+    // 마감일이면서 완료된 일정인 경우 → showDone도 켜져야 함
+    const shouldShow = showDeadline && (!isDone || (isDone && showDone));
+    el.style.display = shouldShow ? "" : "none";
+  });
+
+  document.querySelectorAll("[data-type='start_time']").forEach(el => {
+    // 시행일은 완료 여부 관계없이 showStart만 따름
+    el.style.display = showStart ? "" : "none";
+  });
+}
+
+["showDone", "showDeadline", "showStart"].forEach(id => {
+  document.getElementById(id).addEventListener("change", updateVisibility);
+});
+
+document.addEventListener("DOMContentLoaded", updateVisibility);

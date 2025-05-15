@@ -30,7 +30,7 @@
               <!-- 날짜 숫자 (오늘이면 동그라미) -->
               {% if day == today_day %}
                 <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center mx-auto mb-0 fw-bold"
-                     style="width: 1.5rem; height: 1.5rem;">
+                    style="width: 1.5rem; height: 1.5rem;">
                   {{ day }}
                 </div>
               {% else %}
@@ -38,27 +38,41 @@
               {% endif %}
 
               <!-- 일정 리스트 -->
-              {% with schedule_map|get_item:day as schedules %}
-                {% if schedules %}
+              {% with schedule_map|get_item:day as schedule_pairs %}
+                {% if schedule_pairs %}
                 <div class="d-flex flex-column gap-1 align-items-start">
-                  {% for item in schedules|slice:":3" %}
-                  <div class="text-white rounded px-0 py-0 small text-truncate w-100"
-                  role="button"
-                  onclick="openTaskDetail(this)"
-                  data-id="{{ item.id }}"
-                  data-task="{{ item.task_name }}"
-                  data-subject="{{ item.subject }}"
-                  data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
-                  data-fixed="{{ item.is_fixed }}"
-                  data-exam="{{ item.is_exam_task }}"
-                  data-owner="{{ item.owner.id }}"
-                  style="background-color: {{item.color}};"
-                  >{{ item.task_name }}</div>
+                  {% for type, item in schedule_pairs|slice:":3" %}
+                    <div class="text-white rounded px-0 py-0 small text-truncate w-100"
+                        role="button"
+                        onclick="openTaskDetail(this)"
+                        data-id="{{ item.id }}"
+                        data-task="{{ item.task_name }}"
+                        data-subject="{{ item.subject }}"
+                        data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
+                        data-fixed="{{ item.is_fixed }}"
+                        data-exam="{{ item.is_exam_task }}"
+                        data-owner="{{ item.owner.id }}"
+                        style="background-color: {% if type == 'start_time' %}#0d6efd{% else %}{{ item.color }}{% endif %};"
+                        data-type="{{ type }}"
+                        data-done="{{ item.is_done|yesno:'true,false' }}">
+                      {% if type == 'start_time' %}
+                      ✓
+                      {%endif%}
+                      {{ item.task_name }}
+                      <!-- <div class="small {% if type == 'start_time' %}text-light{% endif %}">
+                        {% if type == 'start_time' %}
+                          시작: {{ item.start_time|date:"H:i" }}
+                        {% else %}
+                          마감: {{ item.deadline|date:"H:i" }}
+                        {% endif %}
+                      </div> -->
+                    </div>
                   {% endfor %}
-                  {% if schedules|length > 3 %}
+
+                  {% if schedule_pairs|length > 3 %}
                   <div class="text-muted small text-end w-100">
                     <a href="#" class="text-decoration-none" data-day="{{ day }}" onclick="openScheduleModal(this)">
-                      +{{ schedules|length|add:"-3" }}개 더보기
+                      +{{ schedule_pairs|length|add:"-3" }}개 더보기
                     </a>
                   </div>
                   {% endif %}
@@ -66,6 +80,7 @@
                 {% endif %}
               {% endwith %}
             {% endif %}
+
 
           </td>
           {% endfor %}

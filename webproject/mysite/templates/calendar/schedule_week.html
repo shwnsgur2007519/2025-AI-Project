@@ -2,9 +2,9 @@
 {% load dict_extras %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center my-3">
-  <a class="btn btn-outline-secondary" href="?date={{ prev_date }}">◀ 전주</a>
+  <a class="btn btn-outline-secondary mx-1" href="?date={{ prev_date }}">◀</a>
   <h4 class="mb-0">{{ days.0|date:"Y년 m월 d일" }} ~ {{ days.6|date:"m월 d일" }}</h4>
-  <a class="btn btn-outline-secondary" href="?date={{ next_date }}">다음주 ▶</a>
+  <a class="btn btn-outline-secondary mx-1" href="?date={{ next_date }}">▶</a>
 </div>
 
 <table class="table table-bordered text-center" style="table-layout: fixed; width: 100%;">
@@ -22,32 +22,47 @@
   </thead>
   <tbody>
     {% for hour in hours %}
-      <tr>
-        <th>{{ hour|stringformat:"02d" }}:00</th>
-        {% for day in days %}
-          <td class="px-1 py-0">
-            {% for item in schedule_map|dict_get:day %}
-              {% if item.start_time.hour == hour %}
-                <div class="text-white rounded px-0 py-0 small text-truncate w-100 my-1 py-1"
-                       role="button"
-                       onclick="openTaskDetail(this)"
-                       data-id="{{ item.id }}"
-                       data-task="{{ item.task_name }}"
-                       data-subject="{{ item.subject }}"
-                       data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
-                       data-fixed="{{ item.is_fixed }}"
-                       data-exam="{{ item.is_exam_task }}"
-                       data-owner="{{ item.owner.id }}"
-                       style="background-color: {{ item.color }};
-                              max-width:100%; overflow-x:auto;">
-                {{ item.task_name }}
+    <tr>
+      <th>{{ hour|stringformat:"02d" }}:00</th>
+      {% for day in days %}
+        <td class="px-1 py-0">
+          {% with schedule_map|dict_get:day as schedule_pairs %}
+            {% for type, item in schedule_pairs %}
+              {% if type == 'start_time' and item.start_time.hour == hour %}
+                <div class="bg-primary text-white rounded px-1 py-1 small text-truncate w-100 my-1"
+                    role="button"
+                    onclick="openTaskDetail(this)"
+                    data-id="{{ item.id }}"
+                    data-task="{{ item.task_name }}"
+                    data-subject="{{ item.subject }}"
+                    data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
+                    data-fixed="{{ item.is_fixed }}"
+                    data-exam="{{ item.is_exam_task }}"
+                    data-owner="{{ item.owner.id }}">
+                  ✓ {{ item.task_name }}
+                </div>
+              {% elif type == 'deadline' and item.deadline.hour == hour %}
+                <div class="text-white rounded px-1 py-1 small text-truncate w-100 my-1"
+                    role="button"
+                    onclick="openTaskDetail(this)"
+                    data-id="{{ item.id }}"
+                    data-task="{{ item.task_name }}"
+                    data-subject="{{ item.subject }}"
+                    data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
+                    data-fixed="{{ item.is_fixed }}"
+                    data-exam="{{ item.is_exam_task }}"
+                    data-owner="{{ item.owner.id }}"
+                    style="background-color: {{ item.color }};">
+                  {{ item.task_name }}
                 </div>
               {% endif %}
             {% endfor %}
-          </td>
-        {% endfor %}
-      </tr>
-    {% endfor %}
+          {% endwith %}
+        </td>
+      {% endfor %}
+    </tr>
+  {% endfor %}
+
     <!-- 일정 상세 보기 모달 -->
     <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
         <div class="modal-dialog">

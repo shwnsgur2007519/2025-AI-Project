@@ -29,9 +29,22 @@ def index(request):
 
     # 날짜별 일정 분류
     schedule_map = {}
+
     for schedule in schedules:
-        date_key = schedule.deadline.day
-        schedule_map.setdefault(date_key, []).append(schedule)
+        # 마감일 기준 등록
+        if schedule.deadline:
+            date_key = schedule.deadline.day
+            schedule_map.setdefault(date_key, []).append(("deadline", schedule))
+
+        # 시작일 기준 등록
+        if schedule.start_time:
+            date_key = schedule.start_time.day
+            schedule_map.setdefault(date_key, []).append(("start_time", schedule))
+
+    # 정렬: 마감 일정이 위에 뜨도록
+    for day in schedule_map:
+        schedule_map[day].sort(key=lambda pair: 0 if pair[0] == "deadline" else 1)
+
 
     # JSON용 schedule 정리 (모달용)
     schedule_json = {
@@ -46,7 +59,7 @@ def index(request):
             'owner_id': s.owner.id,
             'color': s.color,
         }
-        for s in schedule_list
+        for type, s in schedule_list
     ]
     for day, schedule_list in schedule_map.items()
     }
@@ -71,7 +84,6 @@ def index(request):
 
     return render(request, 'calendar/schedule_list.html', context)
 
-@login_required
 def schedule_week(request):
     date_str = request.GET.get('date')
     if date_str:
@@ -92,11 +104,22 @@ def schedule_week(request):
     )
 
     # 요일별로 스케줄 정리
-    schedule_map = {day: [] for day in days}
+    schedule_map = {}
+
     for schedule in schedules:
-        key = schedule.start_time.date()
-        if key in schedule_map:
-            schedule_map[key].append(schedule)
+        # 마감일 기준 등록
+        if schedule.deadline:
+            date_key = schedule.deadline.date()
+            schedule_map.setdefault(date_key, []).append(("deadline", schedule))
+
+        # 시작일 기준 등록
+        if schedule.start_time:
+            date_key = schedule.start_time.date()
+            schedule_map.setdefault(date_key, []).append(("start_time", schedule))
+
+    # 정렬: 마감 먼저
+    for day in schedule_map:
+        schedule_map[day].sort(key=lambda pair: 0 if pair[0] == "deadline" else 1)
 
 
     context = {
