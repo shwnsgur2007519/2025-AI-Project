@@ -52,8 +52,8 @@
                 <a class="btn btn-outline-primary me-2" href="{% url 'calendar:schedule_create' %}">일정 추가</a>
                 <a href="{% url 'calendar:schedule_type_list' %}" class="btn btn-outline-primary me-2">분류 관리</a>
                 <button class="btn btn-outline-primary me-2" type="button">일정 재배치</button>
-                <a class="btn btn-outline-secondary me-2" href="#">주간 보기</a>
-                <a class="btn btn-outline-secondary me-2" href="#">월간 보기</a>
+                <a class="btn btn-outline-secondary me-2" href="{% url 'calendar:schedule_week' %}">주간 보기</a>
+                <a class="btn btn-outline-secondary me-2" href="{% url 'calendar:index' %}">월간 보기</a>
                 <a class="btn btn-outline-secondary me-2" href="{% url 'calendar:schedule_list' %}">일정 목록</a>
                 <!-- 옵션 펼치기 버튼 -->
                 <button class="btn btn-outline-dark me-2" type="button" data-bs-toggle="collapse"
@@ -94,10 +94,9 @@
 {% endblock %}
 
 <script>
-  window.scheduleData = JSON.parse('{{ schedule_json|safe }}');
-  window.currentUserId = JSON.parse('{{ user_id|default:"null" }}');
+  window.currentUserId = {{ user_id|default:"null" }};
+  window.scheduleData = {{ schedule_json|safe|default:"null" }};
 </script>
-
 <script src="{% static 'calendar_list.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 

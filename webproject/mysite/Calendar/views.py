@@ -7,9 +7,11 @@ from .forms import ScheduleForm, ScheduleTypeForm
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.timezone import make_aware
+from django.utils import timezone
 
 def index(request):
-    today = datetime.date.today()
+    today = datetime.datetime.today()
     year = int(request.GET.get('year', today.year))
     month = int(request.GET.get('month', today.month))
 
@@ -68,6 +70,46 @@ def index(request):
     }
 
     return render(request, 'calendar/schedule_list.html', context)
+
+@login_required
+def schedule_week(request):
+    date_str = request.GET.get('date')
+    if date_str:
+        try:
+            reference_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            reference_date = timezone.now().date()
+    else:
+        reference_date = timezone.now().date()
+
+    # 월요일 기준 주 시작일
+    start_of_week = reference_date - datetime.timedelta(days=reference_date.weekday())
+    days = [start_of_week + datetime.timedelta(days=i) for i in range(7)]
+
+    schedules = Schedule.objects.filter(
+        owner=request.user,
+        start_time__date__range=(days[0],days[-1])
+    )
+
+    # 요일별로 스케줄 정리
+    schedule_map = {day: [] for day in days}
+    for schedule in schedules:
+        key = schedule.start_time.date()
+        if key in schedule_map:
+            schedule_map[key].append(schedule)
+
+
+    context = {
+        'days': days,
+        'schedule_map': schedule_map,
+        'hours': range(0, 24),
+        'user_id': request.user.id if request.user.is_authenticated else None,
+        'prev_date': (start_of_week - datetime.timedelta(days=7)).strftime('%Y-%m-%d'),
+        'next_date': (start_of_week + datetime.timedelta(days=7)).strftime('%Y-%m-%d'),
+    }
+    print(context['prev_date'])
+    return render(request, 'calendar/schedule_week.html', context)
+
 
 @login_required(login_url='common:login')
 def schedule_create(request):

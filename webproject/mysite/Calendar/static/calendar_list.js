@@ -1,10 +1,24 @@
-document.addEventListener('keydown', function(event) {
-  if (event.key === 'ArrowLeft') {
-    window.location.href = "?year="+window.prev_year+"&month="+window.prev_month;
-  } else if (event.key === 'ArrowRight') {
-    window.location.href = "?year="+window.next_year+"&month="+window.next_month;
+document.addEventListener('keydown', function (event) {
+  const path = window.location.pathname;
+
+  // 주간 보기: /calendar/week/
+  if (path.includes('/week/')) {
+    if (event.key === 'ArrowLeft') {
+      window.location.href = '?date=' + window.prev_date;
+    } else if (event.key === 'ArrowRight') {
+      window.location.href = '?date=' + window.next_date;
+    }
+
+  // 월간 보기: /calendar/ 또는 /calendar/index/
+  } else if (path === '/calendar/' || path.includes('/calendar/index')) {
+    if (event.key === 'ArrowLeft') {
+      window.location.href = '?year=' + window.prev_year + '&month=' + window.prev_month;
+    } else if (event.key === 'ArrowRight') {
+      window.location.href = '?year=' + window.next_year + '&month=' + window.next_month;
+    }
   }
 });
+
 
 function openScheduleModal(el) {
   const day = el.getAttribute('data-day');
@@ -52,12 +66,10 @@ function openTaskDetail(el) {
   const id = el.dataset.id;
     const editLink = document.getElementById("editTaskLink");
     editLink.href = `/calendar/schedule/${id}/edit/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-    
+
   // 소유자 비교 후 수정 버튼 보이기/숨기기
   const ownerId = parseInt(el.dataset.owner);
   
-  console.log('currentUserId:', window.currentUserId);
-  console.log('ownerId:', ownerId);
   if (window.currentUserId === ownerId) {
     editLink.classList.remove("d-none");
   } else {

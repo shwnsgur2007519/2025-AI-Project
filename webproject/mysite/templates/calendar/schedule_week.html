@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load dict_extras %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center my-3">
+  <a class="btn btn-outline-secondary" href="?date={{ prev_date }}">◀ 전주</a>
+  <h4 class="mb-0">{{ days.0|date:"Y년 m월 d일" }} ~ {{ days.6|date:"m월 d일" }}</h4>
+  <a class="btn btn-outline-secondary" href="?date={{ next_date }}">다음주 ▶</a>
+</div>
+
+<table class="table table-bordered text-center" style="table-layout: fixed; width: 100%;">
+    <colgroup>
+        <col style="width: 5%;">               <!-- 시간 열 -->
+        <col style="width: 15%;" span="7"> <!-- 7일 열 -->
+      </colgroup>
+    <thead>
+    <tr>
+      <th>시간</th>
+      {% for day in days %}
+        <th>{{ day|date:"m/d (D)" }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for hour in hours %}
+      <tr>
+        <th>{{ hour|stringformat:"02d" }}:00</th>
+        {% for day in days %}
+          <td class="px-1 py-0">
+            {% for item in schedule_map|dict_get:day %}
+              {% if item.start_time.hour == hour %}
+                <div class="text-white rounded px-0 py-0 small text-truncate w-100 my-1 py-1"
+                       role="button"
+                       onclick="openTaskDetail(this)"
+                       data-id="{{ item.id }}"
+                       data-task="{{ item.task_name }}"
+                       data-subject="{{ item.subject }}"
+                       data-deadline="{{ item.deadline|date:'Y-m-d H:i' }}"
+                       data-fixed="{{ item.is_fixed }}"
+                       data-exam="{{ item.is_exam_task }}"
+                       data-owner="{{ item.owner.id }}"
+                       style="background-color: {{ item.color }};
+                              max-width:100%; overflow-x:auto;">
+                {{ item.task_name }}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    <!-- 일정 상세 보기 모달 -->
+    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="taskDetailModalLabel">일정 상세 정보</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+            </div>
+            <div class="modal-body">
+              <p><strong>과목:</strong> <span id="detailSubject"></span></p>
+              <p><strong>마감일:</strong> <span id="detailDeadline"></span></p>
+              <p><strong>고정 일정:</strong> <span id="detailFixed"></span></p>
+              <p><strong>시험 여부:</strong> <span id="detailExam"></span></p>
+            </div>
+            <div class="modal-footer">
+              <a href="#" id="editTaskLink" class="btn btn-primary d-none">수정</a>
+            </div>
+          </div>
+        </div>
+      </div>
+  </tbody>
+</table>
+<script>
+  window.prev_date='{{prev_date}}';
+  window.next_date='{{next_date}}';
+</script>
+{% endblock %}

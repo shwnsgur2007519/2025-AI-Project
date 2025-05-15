@@ -12,5 +12,5 @@ urlpatterns = [
     path('schedule-type/list/', views.schedule_type_list, name='schedule_type_list'),
     path('schedule-type/<int:pk>/edit/', views.schedule_type_edit, name='schedule_type_edit'),
     path('schedule-type/<int:pk>/delete/', views.schedule_type_delete, name='schedule_type_delete'),
-
+    path('week/', views.schedule_week, name='schedule_week'),
 ]
