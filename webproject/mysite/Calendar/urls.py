@@ -17,4 +17,8 @@ urlpatterns = [
     path('schedule/<int:pk>/unmark_done/', views.schedule_unmark_done, name='schedule_unmark_done'),
     path('schedule/<int:pk>/delete/', views.schedule_delete, name='schedule_delete'),
     path('schedule/replace/', views.schedule_replace, name='schedule_replace'),
+    path('schedule/replace/ai_run', views.ai_run, name='ai_run'),
+    path('schedule/replace/ai_confirm', views.ai_confirm, name='ai_confirm'),
+    path('schedule/replace/ai_cancel', views.ai_cancel, name='ai_cancel'),
+    
 ]

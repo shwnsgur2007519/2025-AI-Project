@@ -13,6 +13,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.db import transaction
 from .ai import schedule_relocation, toJson, toSchedule
+from django.views.decorators.http import require_POST
 
 def index(request):
     today = datetime.datetime.today()
@@ -31,6 +32,17 @@ def index(request):
     else:
         schedules = Schedule.objects.none()
 
+
+    ai_result_json = request.session.get('ai_result_json', '')
+    ai_results = []
+    hidden_ids = []
+
+    if ai_result_json:
+        ai_results_str=json.loads(ai_result_json)
+        ai_results = toSchedule(ai_results_str)
+        hidden_ids = [s['id'] for s in ai_results_str]  # 숨길 원래 일정 id
+
+
     # 날짜별 일정 분류
     schedule_map = {}
 
@@ -41,13 +53,19 @@ def index(request):
             schedule_map.setdefault(date_key, []).append(("deadline", schedule))
 
         # 시작일 기준 등록
-        if schedule.start_time:
+        if schedule.start_time and not schedule.id in hidden_ids:
             date_key = schedule.start_time.day
             schedule_map.setdefault(date_key, []).append(("start_time", schedule))
+        
+    for schedule in ai_results:
+        if schedule.start_time.month == month:
+            date_key = schedule.start_time.day
+            schedule_map.setdefault(date_key, []).append(("ai_schedule", schedule))
+
 
     # 정렬: 마감 일정이 위에 뜨도록
     for day in schedule_map:
-        schedule_map[day].sort(key=lambda pair: 0 if pair[0] == "deadline" else 1)
+        schedule_map[day].sort(key=lambda pair: 0 if pair[0] == "deadline" else (1 if pair[0] == "start_time" else -1))
 
 
     # JSON용 schedule 정리 (모달용)
@@ -75,15 +93,6 @@ def index(request):
     next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
 
 
-    ai_result_json = request.session.pop('ai_result_json', None)
-
-    ai_results = []
-    hidden_ids = []
-
-    if ai_result_json:
-        ai_results = toSchedule(ai_result_json)
-        hidden_ids = [s.id for s in ai_results]  # 숨길 원래 일정 id
-
 
     context = {
         'year': year,
@@ -97,8 +106,7 @@ def index(request):
         'next_month': next_month,
         'today_day': today.day if year == today.year and month == today.month else None,
         'user_id': request.user.id if request.user.is_authenticated else None,
-        'ai_suggestions': ai_results,
-        'hide_ids': hidden_ids,
+        'has_ai_session': 'ai_result_json' in request.session,
     }
 
     return render(request, 'calendar/schedule_list.html', context)
@@ -119,33 +127,49 @@ def schedule_week(request):
 
     schedules = Schedule.objects.filter(
         owner=request.user,
-        start_time__date__range=(days[0],days[-1])
     )
+
+
+    
+    ai_result_json = request.session.get('ai_result_json', '')
+    ai_results = []
+    hidden_ids = []
+
+    if ai_result_json:
+        ai_results_str=json.loads(ai_result_json)
+        ai_results = toSchedule(ai_results_str)
+        hidden_ids = [s['id'] for s in ai_results_str]  # 숨길 원래 일정 id
+
 
     # 요일별로 스케줄 정리
     schedule_map = {}
 
     for schedule in schedules:
         # 마감일 기준 등록
-        if schedule.deadline:
+        if schedule.deadline and days[0]<=schedule.deadline.date()<=days[-1]:
             date_key = schedule.deadline.date()
             schedule_map.setdefault(date_key, []).append(("deadline", schedule))
 
         # 시작일 기준 등록
-        if schedule.start_time:
+        if schedule.start_time and not schedule.id in hidden_ids and days[0]<=schedule.start_time.date()<=days[-1]:
             date_key = schedule.start_time.date()
             schedule_map.setdefault(date_key, []).append(("start_time", schedule))
+                
+    for schedule in ai_results:
+        if days[0]<=schedule.start_time.date()<=days[-1]:
+            date_key = schedule.start_time.date()
+            schedule_map.setdefault(date_key, []).append(("ai_schedule", schedule))
 
     # 정렬: 마감 먼저
     for day in schedule_map:
-        schedule_map[day].sort(key=lambda pair: 0 if pair[0] == "deadline" else 1)
-
+        schedule_map[day].sort(key=lambda pair: 0 if pair[0] == "deadline" else (1 if pair[0] == "start_time" else -1))
+    
 
     schedule_json={}
 
     for date, pairs in schedule_map.items():
         date_str = date.strftime("%Y-%m-%d")
-        print(date)
+        
         schedule_json[date_str] = []
 
         for type_, s in pairs:
@@ -172,8 +196,8 @@ def schedule_week(request):
         'user_id': request.user.id if request.user.is_authenticated else None,
         'prev_date': (start_of_week - datetime.timedelta(days=7)).strftime('%Y-%m-%d'),
         'next_date': (start_of_week + datetime.timedelta(days=7)).strftime('%Y-%m-%d'),
+        'has_ai_session': 'ai_result_json' in request.session,
     }
-    print(context['prev_date'])
     return render(request, 'calendar/schedule_week.html', context)
 
 
@@ -211,7 +235,7 @@ def schedule_edit(request, pk):
     return render(request, 'calendar/schedule_form.html', {
         'form': form,
         'is_edit': True,
-        'next': next_url,  # 템플릿에 전달
+        'next': next_url,
         'id': pk,
     })
 
@@ -302,28 +326,9 @@ def schedule_replace(request):
     data = Schedule.objects.filter(
         owner=request.user,
         deadline__gt=timezone.now(),
-        is_done=False
+        is_done=False,
+        is_fixed=False,
     ).order_by('deadline')
-    print(data)
-    # data_json = toJson(data)
-    # update_json = schedule_relocation(data_json)
-
-    # id_to_start = {
-    #     item['id']: timezone.make_aware(
-    #         datetime.datetime.strptime(item['start_time'], '%Y-%m-%d %H:%M:%S')
-    #     )
-    #     for item in update_json
-    # }
-
-    # objs = list(data)
-    # for obj in objs:
-    #     if obj.pk in id_to_start:
-    #         obj.start_time = id_to_start[obj.pk]
-
-    # with transaction.atomic():
-    #     Schedule.objects.bulk_update(objs, ['start_time'])
-    
-    
     return render(request, 'calendar/schedule_replace.html', {'schedules': data})
 
 @csrf_exempt
@@ -336,6 +341,48 @@ def ai_run(request):
         update_json = schedule_relocation(data_json)
 
         # 임시로 저장할 데이터 (AI 처리 결과)
-        request.session['ai_result_json'] = update_json
+        request.session['ai_result_json'] = json.dumps(update_json)
+    return redirect('calendar:index')
 
-        return redirect('calendar:index')
+@require_POST
+@login_required(login_url='common:login')
+def ai_confirm(request):
+    import json
+    from datetime import datetime
+    from django.utils.timezone import make_aware
+
+    ai_result_raw = request.session.pop('ai_result_json', None)
+
+    if not ai_result_raw:
+        return redirect(request.META.get('HTTP_REFERER', 'calendar:index'))
+
+    try:
+        ai_result_list = json.loads(ai_result_raw)
+
+        # ID별로 start_time만 추출
+        id_to_start = {
+            item['id']: make_aware(datetime.strptime(item['start_time'], '%Y-%m-%d %H:%M:%S'))
+            for item in ai_result_list
+        }
+
+        # 기존 인스턴스를 DB에서 다시 조회
+        schedules = Schedule.objects.filter(id__in=id_to_start.keys())
+
+        for s in schedules:
+            s.start_time = id_to_start[s.id]
+
+        with transaction.atomic():
+            Schedule.objects.bulk_update(schedules, ['start_time'])
+
+    except Exception as e:
+        messages.error(request, f"AI 확정 중 오류 발생: {str(e)}")
+
+    return redirect(request.META.get('HTTP_REFERER', 'calendar:index'))
+
+
+@require_POST
+@login_required
+def ai_cancel(request):
+    request.session.pop('ai_result_json', None)
+    messages.info(request, "AI 재배치가 취소되었습니다.")
+    return redirect(request.META.get('HTTP_REFERER', 'calendar:index'))

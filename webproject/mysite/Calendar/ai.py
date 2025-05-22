@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timedelta
 from .models import Schedule, ScheduleType
 from django.contrib.auth.models import User
+from datetime import datetime
 
 def toSchedule(relocated_list):
     """
@@ -49,40 +50,37 @@ def toSchedule(relocated_list):
 
     return restored
 
-from datetime import datetime
 
 def toJson(instances):
     """
-    Schedule 인스턴스 리스트를 schedule_relocation()에 넘길 수 있는
-    dict 리스트로 변환.
-    DateTimeField는 "YYYY-MM-DD HH:MM:SS" 문자열로, 
-    ForeignKey는 *_id 필드로, 
-    나머지 필드는 원시값 그대로 반환.
+    Schedule 인스턴스 리스트를 JSON 직렬화 가능한 dict 리스트로 변환.
+    datetime은 문자열로, None/기본값 포함 처리.
     """
     result = []
     for inst in instances:
+        def dt_str(dt):
+            return dt.strftime('%Y-%m-%d %H:%M:%S') if dt else None
+
         data = {
             'id':               inst.pk,
             'owner_id':         inst.owner_id,
-            'task_name':        inst.task_name,
+            'task_name':        inst.task_name or '',
             'duration_minutes': inst.duration_minutes,
             'difficulty':       inst.difficulty,
             'importance':       inst.importance,
             'task_type_id':     inst.task_type_id,
-            'subject':          inst.subject,
-            'is_exam_task':     inst.is_exam_task,
-            # DateTimeField → 문자열
-            'deadline':         inst.deadline.strftime('%Y-%m-%d %H:%M:%S') if inst.deadline else None,
-            'start_time':       inst.start_time.strftime('%Y-%m-%d %H:%M:%S') if inst.start_time else None,
-            'end_time':         inst.end_time.strftime('%Y-%m-%d %H:%M:%S') if inst.end_time else None,
-            'is_fixed':         inst.is_fixed,
+            'subject':          inst.subject or '',
+            'is_exam_task':     bool(inst.is_exam_task),
+            'deadline':         dt_str(inst.deadline),
+            'start_time':       dt_str(inst.start_time),
+            'end_time':         dt_str(inst.end_time),
+            'is_fixed':         bool(inst.is_fixed),
             'exam_id':          inst.exam_id,
-            'color':            inst.color,
-            'is_done':          inst.is_done,
+            'color':            inst.color or '#6c8df5',
+            'is_done':          bool(inst.is_done),
         }
         result.append(data)
     return result
-
 
 
 def schedule_relocation(data):

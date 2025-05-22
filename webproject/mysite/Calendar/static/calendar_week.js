@@ -18,6 +18,9 @@ function shouldShow(item, settings) {
   if (type === "start_time") {
     return settings.showStart && (!isDone || (isDone && settings.showDone));
   }
+  if (type === "ai_schedule") {
+    return true;
+  }
   return false;
 }
 
@@ -25,7 +28,7 @@ function shouldShow(item, settings) {
 function clearWeekSchedule() {
   for (const day in scheduleData) {
     scheduleData[day].forEach(item => {
-      const dt = item.type === "start_time" ? item.start_time : item.deadline;
+      const dt = item.type === "start_time" || item.type === "ai_schedule" ? item.start_time : item.deadline;
       const dateObj = new Date(dt);
       const hour = dateObj.getHours().toString().padStart(2, '0');
       const cellId = `cell-${day}-${hour}`;
@@ -42,8 +45,7 @@ function renderWeekSchedule() {
   for (const day in scheduleData) {
     scheduleData[day].forEach(item => {
       if (!shouldShow(item, settings)) return;
-
-      const dt = item.type === "start_time" ? item.start_time : item.deadline;
+      const dt = item.type === "start_time" || item.type === "ai_schedule" ? item.start_time : item.deadline;
       const dateObj = new Date(dt);
       const hour = dateObj.getHours().toString().padStart(2, '0');
       const cellId = `cell-${day}-${hour}`;
@@ -52,8 +54,8 @@ function renderWeekSchedule() {
 
       const div = document.createElement("div");
       div.className = "text-white rounded px-1 py-1 small text-truncate w-100 my-1";
-      div.style.backgroundColor = item.type === "start_time" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
-      div.textContent = item.type === "start_time" ? `✓ ${item.task_name}` : item.task_name;
+      div.style.backgroundColor = item.type === "start_time" || item.type === "ai_schedule" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
+      div.textContent = item.type === "start_time" ? `✓ ${item.task_name}` : item.type === "ai_schedule"? `[AI 제안] ${item.task_name}`: item.task_name;
 
       div.setAttribute("role", "button");
       div.setAttribute("onclick", "openTaskDetail(this)");
@@ -87,13 +89,20 @@ function openTaskDetail(el) {
   
   const doneBtn = document.getElementById("markDoneBtn");
   const undoneBtn = document.getElementById("unmarkDoneBtn");
+  const Editbtn = document.getElementById("editbuttons");
 
-  if (isDone) {
-    doneBtn.classList.add("d-none");
-    undoneBtn.classList.remove("d-none");
-  } else {
-    doneBtn.classList.remove("d-none");
-    undoneBtn.classList.add("d-none");
+  if (!window.hasAISession) {
+    Editbtn.classList.remove("d-none");
+    if (isDone) {
+      doneBtn.classList.add("d-none");
+      undoneBtn.classList.remove("d-none");
+    } else {
+      doneBtn.classList.remove("d-none");
+      undoneBtn.classList.add("d-none");
+    }
+  }
+  else{
+    Editbtn.classList.add("d-none");
   }
 
   const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));

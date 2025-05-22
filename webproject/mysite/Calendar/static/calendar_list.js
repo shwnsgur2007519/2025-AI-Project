@@ -21,6 +21,9 @@ function shouldShow(item, settings) {
     return settings.showStart && (!isDone || (isDone && settings.showDone));
   }
 
+  if (type === "ai_schedule") {
+    return true;
+  }
   return false;
 }
 
@@ -39,9 +42,9 @@ function openScheduleModal(el) {
         const li = document.createElement('li');
         li.className = 'list-group-item';
         li.role = 'button';
-        li.style.backgroundColor = item.type === "start_time" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
+        li.style.backgroundColor = item.type === "start_time" || item.type === "ai_schedule" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
         li.style.webkitTextFillColor = 'white';
-        li.textContent = item.type === 'start_time' ? '✓ ' + item.task_name : item.task_name;
+        li.textContent = item.type === "start_time" ? `✓ ${item.task_name}` : item.type === "ai_schedule"? `[AI 제안] ${item.task_name}`: item.task_name;
 
         // 데이터 추가
         li.dataset.task = item.task_name;
@@ -78,13 +81,20 @@ function openTaskDetail(el) {
 
   const doneBtn = document.getElementById("markDoneBtn");
   const undoneBtn = document.getElementById("unmarkDoneBtn");
-  console.log(el.dataset);
-  if (isDone) {
-    doneBtn.classList.add("d-none");
-    undoneBtn.classList.remove("d-none");
-  } else {
-    doneBtn.classList.remove("d-none");
-    undoneBtn.classList.add("d-none");
+  const Editbtn = document.getElementById("editbuttons");
+
+  if (!window.hasAISession) {
+    Editbtn.classList.remove("d-none");
+    if (isDone) {
+      doneBtn.classList.add("d-none");
+      undoneBtn.classList.remove("d-none");
+    } else {
+      doneBtn.classList.remove("d-none");
+      undoneBtn.classList.add("d-none");
+    }
+  }
+  else{
+    Editbtn.classList.add("d-none");
   }
 
 
@@ -107,6 +117,10 @@ function updateVisibility() {
     const should = settings.showStart && (!isDone || (isDone && settings.showDone));
     el.style.display = should ? "" : "none";
   });
+
+  document.querySelectorAll("[data-type='ai_schedule']").forEach(el => {
+    el.style.display = "";
+  });
 }
 
 function updateMoreLinks() {
@@ -115,7 +129,7 @@ function updateMoreLinks() {
     const all = scheduleData[day] || [];
     const visible = all.filter(shouldShow);
     
-    console.log(all, visible)
+
 
     // 3개 이하면 숨김
     if (visible.length <= 3) {
@@ -135,7 +149,7 @@ function updateFilterState() {
   window.showStart = document.getElementById("showStart").checked;
 }
 
-// 스케줄 렌더링링
+// 스케줄 렌더링
 function renderSchedules() {
   const settings = getFilterSettings();
 
@@ -152,7 +166,7 @@ function renderSchedules() {
     previewItems.forEach(item => {
       const div = document.createElement("div");
       div.className = "text-white rounded px-0 py-0 small text-truncate w-100";
-      div.style.backgroundColor = item.type === "start_time" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
+      div.style.backgroundColor = item.type === "start_time" || item.type === "ai_schedule" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
       div.style.display="block";
       // data-* 속성 추가 (DOM 필터링용)
       div.dataset.type = item.type;
@@ -169,7 +183,7 @@ function renderSchedules() {
       div.setAttribute("role", "button");
       div.setAttribute("onclick", "openTaskDetail(this)");
 
-      div.textContent = (item.type === "start_time" ? "✓ " : "") + item.task_name;
+      div.textContent = item.type === "start_time" ? `✓ ${item.task_name}` : item.type === "ai_schedule"? `[AI 제안] ${item.task_name}`: item.task_name;
 
       cell.appendChild(div);
     });
