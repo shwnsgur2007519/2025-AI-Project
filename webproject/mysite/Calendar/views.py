@@ -11,6 +11,8 @@ from django.utils.timezone import make_aware
 from django.utils import timezone
 from django.contrib import messages
 from django.urls import reverse
+from django.db import transaction
+from .ai import schedule_relocation, toJson, toSchedule
 
 def index(request):
     today = datetime.datetime.today()
@@ -72,6 +74,17 @@ def index(request):
     prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
     next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
 
+
+    ai_result_json = request.session.pop('ai_result_json', None)
+
+    ai_results = []
+    hidden_ids = []
+
+    if ai_result_json:
+        ai_results = toSchedule(ai_result_json)
+        hidden_ids = [s.id for s in ai_results]  # 숨길 원래 일정 id
+
+
     context = {
         'year': year,
         'month': month,
@@ -84,6 +97,8 @@ def index(request):
         'next_month': next_month,
         'today_day': today.day if year == today.year and month == today.month else None,
         'user_id': request.user.id if request.user.is_authenticated else None,
+        'ai_suggestions': ai_results,
+        'hide_ids': hidden_ids,
     }
 
     return render(request, 'calendar/schedule_list.html', context)
@@ -281,3 +296,46 @@ def schedule_delete(request, pk):
         schedule.delete()
         return redirect('calendar:schedule_list')
     return render(request, 'calendar/schedule_confirm_delete.html', {'type': schedule})
+
+@login_required(login_url='common:login')
+def schedule_replace(request):
+    data = Schedule.objects.filter(
+        owner=request.user,
+        deadline__gt=timezone.now(),
+        is_done=False
+    ).order_by('deadline')
+    print(data)
+    # data_json = toJson(data)
+    # update_json = schedule_relocation(data_json)
+
+    # id_to_start = {
+    #     item['id']: timezone.make_aware(
+    #         datetime.datetime.strptime(item['start_time'], '%Y-%m-%d %H:%M:%S')
+    #     )
+    #     for item in update_json
+    # }
+
+    # objs = list(data)
+    # for obj in objs:
+    #     if obj.pk in id_to_start:
+    #         obj.start_time = id_to_start[obj.pk]
+
+    # with transaction.atomic():
+    #     Schedule.objects.bulk_update(objs, ['start_time'])
+    
+    
+    return render(request, 'calendar/schedule_replace.html', {'schedules': data})
+
+@csrf_exempt
+def ai_run(request):
+    if request.method == 'POST':
+        selected_ids = request.POST.getlist('selected_ids')
+        schedules = Schedule.objects.filter(pk__in=selected_ids)
+
+        data_json = toJson(schedules)
+        update_json = schedule_relocation(data_json)
+
+        # 임시로 저장할 데이터 (AI 처리 결과)
+        request.session['ai_result_json'] = update_json
+
+        return redirect('calendar:index')

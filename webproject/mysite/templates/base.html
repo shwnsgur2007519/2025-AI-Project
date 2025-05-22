@@ -49,6 +49,7 @@
             </ul>
 
             <div class="d-flex align-items-center flex-wrap">
+                <a class="btn btn-outline-primary me-2" href="{% url 'calendar:schedule_replace'%}">AI 일정 재배치</a>
                 <a class="btn btn-outline-primary me-2" href="{% url 'calendar:schedule_create' %}">일정 추가</a>
                 <a href="{% url 'calendar:schedule_type_list' %}" class="btn btn-outline-primary me-2">분류 관리</a>
                 <button class="btn btn-outline-primary me-2" type="button">일정 재배치</button>
@@ -93,6 +94,8 @@
 <script>
   window.currentUserId = {{ user_id|default:"null" }};
   window.scheduleData = {{ schedule_json|safe|default:"null" }};
+  window.AIscheduleData = {{ ai_suggestions|safe|default:"null"}};
+  window.exeptions = {{hide_ids|default:"null"}};
 </script>
 
 {% block content %}

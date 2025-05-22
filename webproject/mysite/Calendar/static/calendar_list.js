@@ -51,6 +51,7 @@ function openScheduleModal(el) {
         li.dataset.exam = item.is_exam_task;
         li.dataset.id = item.id;
         li.dataset.owner = item.owner_id;
+        li.dataset.done = item.is_done;
 
         li.onclick = () => openTaskDetail(li);
         listEl.appendChild(li);
@@ -77,7 +78,7 @@ function openTaskDetail(el) {
 
   const doneBtn = document.getElementById("markDoneBtn");
   const undoneBtn = document.getElementById("unmarkDoneBtn");
-
+  console.log(el.dataset);
   if (isDone) {
     doneBtn.classList.add("d-none");
     undoneBtn.classList.remove("d-none");
