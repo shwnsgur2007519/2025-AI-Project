@@ -1,0 +1,10 @@
+steps:
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        pip install -r requirements.txt
+        python manage.py collectstatic --noinput
+        gcloud app deploy app.yaml --quiet
+timeout: "1200s"
