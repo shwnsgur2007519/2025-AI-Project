@@ -1,0 +1,22 @@
+runtime: python39
+
+# 요청이 들어왔을 때 Gunicorn이 실행될 커맨드
+entrypoint: gunicorn -b :$PORT config.wsgi:application
+
+# 정적 파일(collectstatic 결과)을 서빙하기 위한 핸들러
+handlers:
+  # URL 앞에 /static/ 이 붙은 파일은 static/ 폴더에서 서비스
+  - url: /static
+    static_dir: static
+
+  # 그 외 모든 요청은 Django 앱으로 전달
+  - url: /.*
+    script: auto
+
+# (선택) 인스턴스 클래스나 자동스케일링 옵션 지정
+#automatic_scaling:
+#  min_instances: 1
+#  max_instances: 2
+#  cool_down_period_sec: 60
+#  cpu_utilization:
+#    target_utilization: 0.6
