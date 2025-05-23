@@ -7,7 +7,7 @@ entrypoint: gunicorn -b :$PORT config.wsgi:application
 handlers:
   # URL 앞에 /static/ 이 붙은 파일은 static/ 폴더에서 서비스
   - url: /static
-    static_dir: static
+    static_dir: staticfiles
 
   # 그 외 모든 요청은 Django 앱으로 전달
   - url: /.*
