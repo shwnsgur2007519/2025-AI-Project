@@ -13,10 +13,19 @@ handlers:
   - url: /.*
     script: auto
 
-# (선택) 인스턴스 클래스나 자동스케일링 옵션 지정
-#automatic_scaling:
-#  min_instances: 1
-#  max_instances: 2
-#  cool_down_period_sec: 60
-#  cpu_utilization:
-#    target_utilization: 0.6
+env_variables:
+  DB_NAME: "your_db_name"
+  DB_USER: "your_db_user"
+  DB_PASSWORD: "your_db_password"
+  # HOST로 UNIX socket 경로 지정
+  DB_HOST: "/cloudsql/PROJECT_ID:REGION:INSTANCE_ID"
+
+beta_settings:
+  # 방금 생성한 인스턴스의 연결 이름으로 바꿔주세요
+  cloud_sql_instances: PROJECT_ID:REGION:INSTANCE_ID
+
+handlers:
+  - url: /static
+    static_dir: staticfiles
+  - url: /.*
+    script: auto
