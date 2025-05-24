@@ -14,7 +14,7 @@ handlers:
     script: auto
 
 env_variables:
-  DB_NAME: "myproject-db"
+  DB_NAME: "django-db"
   DB_USER: "root"
   DB_PASSWORD: "BS~ebSJf~]==0b:\\"
   # HOST로 UNIX socket 경로 지정
