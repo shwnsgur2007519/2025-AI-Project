@@ -14,13 +14,13 @@ handlers:
     script: auto
 
 env_variables:
-  DB_NAME: "your_db_name"
-  DB_USER: "your_db_user"
-  DB_PASSWORD: "your_db_password"
+  DB_NAME: "myproject-db"
+  DB_USER: "root"
+  DB_PASSWORD: "BS~ebSJf~]==0b:\\"
   # HOST로 UNIX socket 경로 지정
-  DB_HOST: "/cloudsql/PROJECT_ID:REGION:INSTANCE_ID"
+  DB_HOST: "/cloudsql/secret-beacon-460711-t8:asia-northeast3:myproject-db"
 
 beta_settings:
   # 방금 생성한 인스턴스의 연결 이름으로 바꿔주세요
-  cloud_sql_instances: PROJECT_ID:REGION:INSTANCE_ID
+  cloud_sql_instances: secret-beacon-460711-t8:asia-northeast3:myproject-db
 
