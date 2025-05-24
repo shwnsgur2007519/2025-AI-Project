@@ -84,11 +84,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 #     }
 # }
 
+
 #배포
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # 또는 postgresql
-        'HOST':   os.environ['DB_HOST'],      # 위에서 지정한 socket 경로
+        'HOST':   os.getenv('DB_HOST', ''),  # 기본을 빈 문자열로
         'NAME':   os.environ['DB_NAME'],
         'USER':   os.environ['DB_USER'],
         'PASSWORD': os.environ['DB_PASSWORD'],
