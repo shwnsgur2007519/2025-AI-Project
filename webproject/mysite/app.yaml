@@ -24,8 +24,3 @@ beta_settings:
   # 방금 생성한 인스턴스의 연결 이름으로 바꿔주세요
   cloud_sql_instances: PROJECT_ID:REGION:INSTANCE_ID
 
-handlers:
-  - url: /static
-    static_dir: staticfiles
-  - url: /.*
-    script: auto

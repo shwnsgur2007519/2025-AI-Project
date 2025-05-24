@@ -1,5 +1,6 @@
 [
   {
+    "task_name": "역사외우기", 
     "task_id": 1,
     "duration_minutes": 90,
     "difficulty": 3,
@@ -8,7 +9,9 @@
     "subject": "역사",
     "is_exam_task": true,
     "days_until_exam": 5,
-    "is_exam_subject": true
+    "is_exam_subject": true,
+    "deadline": "언젠가",
+    "is_fixed": true,
   },
   {
     "task_id": 2,
