@@ -47,7 +47,7 @@
     <tr>
       <th>{{ hour|stringformat:"02d" }}:00</th>
       {% for day in days %}
-        <td class="px-1 py-0" id="cell-{{day|date:'Y-m-d'}}-{{hour}}">
+        <td class="px-1 py-0" id="cell-{{day|date:'Y-m-d'}}-{{hour|stringformat:'02d'}}">
         </td>
       {% endfor %}
     </tr>

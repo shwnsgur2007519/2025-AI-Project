@@ -86,8 +86,14 @@ def toJson(instances):
 def schedule_relocation(data):
     relocated = []
     for val in data:
+        start = val.get('start_time')
+        # start_time이 비어 있으면 변경 없이 그대로 유지
+        if not start:
+            relocated.append(val)
+            continue
+
         # ISO 포맷("YYYY-MM-DDTHH:MM:SS") 혹은 "YYYY-MM-DD HH:MM:SS" 문자열을 파싱
-        original = datetime.fromisoformat(val['start_time'])
+        original = datetime.fromisoformat(start)
         # 하루(1일) 뒤로
         new_start = original + timedelta(days=1)
         # Django DateTimeField가 잘 읽는 포맷으로 문자열화

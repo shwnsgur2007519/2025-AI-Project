@@ -13,7 +13,11 @@
           <th>마감일</th>
           <th>고정</th>
           <th>시험</th>
-          <th>선택</th>
+          <th>
+            <!-- 전체 선택 체크박스 -->
+            <input type="checkbox" id="select-all">
+            <label for="select-all" class="small mb-0 mx-1">전체선택</label>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -29,7 +33,9 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" class="text-center text-muted">등록된 일정이 없습니다.</td></tr>
+        <tr>
+          <td colspan="6" class="text-center text-muted">등록된 일정이 없습니다.</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -39,4 +45,26 @@
     </div>
   </form>
 </div>
+
+<script>
+  // 전체 선택/해제 기능
+  document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('input[name="selected_ids"]');
+
+    selectAll.addEventListener('change', function() {
+      checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    });
+
+    // (선택 사항) 개별 체크박스 조작 시 전체 선택 박스 상태 동기화
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const allChecked = Array.from(checkboxes).every(chk => chk.checked);
+        const anyChecked = Array.from(checkboxes).some(chk => chk.checked);
+        selectAll.indeterminate = !allChecked && anyChecked;
+        selectAll.checked = allChecked;
+      });
+    });
+  });
+</script>
 {% endblock %}

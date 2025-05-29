@@ -51,10 +51,10 @@
             <div class="d-flex align-items-center flex-wrap">
                 <a class="btn btn-outline-primary me-2" href="{% url 'calendar:schedule_replace'%}">AI 일정 재배치</a>
                 <a class="btn btn-outline-primary me-2" href="{% url 'calendar:schedule_create' %}">일정 추가</a>
-                <a href="{% url 'calendar:schedule_type_list' %}" class="btn btn-outline-primary me-2">분류 관리</a>
                 <a class="btn btn-outline-secondary me-2" href="{% url 'calendar:schedule_week' %}">주간 보기</a>
                 <a class="btn btn-outline-secondary me-2" href="{% url 'calendar:index' %}">월간 보기</a>
                 <a class="btn btn-outline-secondary me-2" href="{% url 'calendar:schedule_list' %}">일정 목록</a>
+                <a class="btn btn-outline-secondary me-2" href="{% url 'calendar:schedule_type_list' %}">분류 관리</a>
                 <!-- 옵션 펼치기 버튼 -->
                 <button class="btn btn-outline-dark me-2" type="button" data-bs-toggle="collapse"
                         data-bs-target="#calendarOptions" aria-expanded="false" aria-controls="calendarOptions">

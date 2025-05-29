@@ -160,15 +160,21 @@ function renderSchedules() {
     cell.innerHTML = ""; // 셀 초기화
 
     const visibleItems = scheduleData[day].filter(item => shouldShow(item, settings));
-    const previewItems = visibleItems.slice(0, 3);
+
+    // 4개 이하: 모두, 5개 이상: 앞의 3개만
+    const previewItems = visibleItems.length <= 4
+      ? visibleItems
+      : visibleItems.slice(0, 3);
 
     // 일정 출력
     previewItems.forEach(item => {
       const div = document.createElement("div");
       div.className = "text-white rounded px-0 py-0 small text-truncate w-100";
-      div.style.backgroundColor = item.type === "start_time" || item.type === "ai_schedule" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
-      div.style.display="block";
-      // data-* 속성 추가 (DOM 필터링용)
+      div.style.backgroundColor = 
+        (item.type === "start_time" || item.type === "ai_schedule")
+          ? (item.is_done ? "#4677be" : "#0d6efd")
+          : item.color;
+      // data-* 속성 추가
       div.dataset.type = item.type;
       div.dataset.done = item.is_done;
       div.dataset.day = day;
@@ -179,17 +185,18 @@ function renderSchedules() {
       div.dataset.fixed = item.is_fixed;
       div.dataset.exam = item.is_exam_task;
       div.dataset.owner = item.owner_id;
-
       div.setAttribute("role", "button");
       div.setAttribute("onclick", "openTaskDetail(this)");
-
-      div.textContent = item.type === "start_time" ? `✓ ${item.task_name}` : item.type === "ai_schedule"? `[AI 제안] ${item.task_name}`: item.task_name;
-
+      div.textContent = item.type === "start_time"
+        ? `✓ ${item.task_name}`
+        : item.type === "ai_schedule"
+          ? `[AI 제안] ${item.task_name}`
+          : item.task_name;
       cell.appendChild(div);
     });
 
-    // +N개 더보기
-    if (visibleItems.length > 3) {
+    // 5개 이상일 때만 +N개 더보기 추가
+    if (visibleItems.length >= 5) {
       const moreDiv = document.createElement("div");
       moreDiv.className = "text-muted small text-end w-100 schedule-more";
       moreDiv.dataset.day = day;
@@ -206,6 +213,7 @@ function renderSchedules() {
     }
   }
 }
+
 
 function reload(){
   updateVisibility(); // DOM 숨김
