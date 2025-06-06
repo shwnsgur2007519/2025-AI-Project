@@ -2,6 +2,12 @@ steps:
   # 1) Python 환경에서 패키지 설치 + static 수집 + migrate
   - name: python:3.9
     entrypoint: bash
+    env:
+  - DB_HOST=/cloudsql/aiproject-462109:asia-northeast3:myproject-db
+  - DB_NAME=django_db
+  - DB_USER=root
+  - DB_PASSWORD=5(Mv3Fl{QYch;foK
+
     args:
       - "-c"
       - |
