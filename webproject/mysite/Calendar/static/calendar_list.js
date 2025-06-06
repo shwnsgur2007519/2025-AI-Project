@@ -44,8 +44,9 @@ function openScheduleModal(el) {
         li.role = 'button';
         li.style.backgroundColor = item.type === "start_time" || item.type === "ai_schedule" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
         li.style.webkitTextFillColor = 'white';
-        li.textContent = item.type === "start_time" ? `✓ ${item.task_name}` : item.type === "ai_schedule"? `[AI 제안] ${item.task_name}`: item.task_name;
-
+        
+        insert_text(item, li);
+        
         // 데이터 추가
         li.dataset.task = item.task_name;
         li.dataset.subject = item.subject;
@@ -187,11 +188,7 @@ function renderSchedules() {
       div.dataset.owner = item.owner_id;
       div.setAttribute("role", "button");
       div.setAttribute("onclick", "openTaskDetail(this)");
-      div.textContent = item.type === "start_time"
-        ? `✓ ${item.task_name}`
-        : item.type === "ai_schedule"
-          ? `[AI 제안] ${item.task_name}`
-          : item.task_name;
+      insert_text(item, div);
       cell.appendChild(div);
     });
 

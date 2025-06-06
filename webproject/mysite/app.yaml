@@ -16,11 +16,11 @@ handlers:
 env_variables:
   DB_NAME: "django_db"
   DB_USER: "root"
-  DB_PASSWORD: "BS~ebSJf~]==0b:\\"
+  DB_PASSWORD: "5(Mv3Fl{QYch;foK"
   # HOST로 UNIX socket 경로 지정
-  DB_HOST: "/cloudsql/secret-beacon-460711-t8:asia-northeast3:myproject-db"
+  DB_HOST: "/cloudsql/aiproject-462109:asia-northeast3:myproject-db"
 
 beta_settings:
   # 방금 생성한 인스턴스의 연결 이름으로 바꿔주세요
-  cloud_sql_instances: secret-beacon-460711-t8:asia-northeast3:myproject-db
+  cloud_sql_instances: aiproject-462109:asia-northeast3:myproject-db
 

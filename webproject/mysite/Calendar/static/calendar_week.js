@@ -55,7 +55,8 @@ function renderWeekSchedule() {
       const div = document.createElement("div");
       div.className = "text-white rounded px-1 py-1 small text-truncate w-100 my-1";
       div.style.backgroundColor = item.type === "start_time" || item.type === "ai_schedule" ? (item.is_done === true ? "#4677be" :"#0d6efd") : item.color;
-      div.textContent = item.type === "start_time" ? `✓ ${item.task_name}` : item.type === "ai_schedule"? `[AI 제안] ${item.task_name}`: item.task_name;
+      
+      insert_text(item, div);
 
       div.setAttribute("role", "button");
       div.setAttribute("onclick", "openTaskDetail(this)");

@@ -36,9 +36,13 @@
       </colgroup>
     <thead>
     <tr>
-      <th>시간</th>
+      <th
+      >시간</th>
       {% for day in days %}
-        <th>{{ day|date:"m/d (D)" }}</th>
+        <th {% if day == today %}
+        class=""
+        {% endif %}
+        >{{ day|date:"m/d (D)" }}</th>
       {% endfor %}
     </tr>
   </thead>

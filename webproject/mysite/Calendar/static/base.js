@@ -87,3 +87,29 @@ function getCookie(name) {
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
 }
+
+
+function insert_text(item, div){  
+  if(item.type === "start_time")
+  {
+    if(item.is_done === true){
+      const del=document.createElement('del');
+      div.appendChild(del);
+      del.textContent=`✓ ${item.task_name}`;
+    }
+    else{
+      div.textContent = `✓ ${item.task_name}`;
+    }
+  }
+  else if(item.type === "ai_schedule"){
+    div.textContent = `[AI 제안] ${item.task_name}`;
+  }
+  else if(item.type === "deadline"){
+    if(item.task_type !== "None"){
+      div.textContent = `[${item.task_type}] ${item.task_name}`;
+    }
+    else{
+      div.textContent = item.task_name;
+    }
+  }
+}

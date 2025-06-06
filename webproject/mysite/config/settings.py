@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-e_=z++z5%+ek3eock(9)=q3#=p6@dx*td6_-ey@$nqdb9-u_=c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["10.171.65.58", "127.0.0.1", "192.168.231.1", 'secret-beacon-460711-t8.du.r.appspot.com']
+ALLOWED_HOSTS = ['aiproject-462109.du.r.appspot.com', '127.0.0.1']
+
 
 
 # Application definition
@@ -76,27 +77,27 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# local
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# 로컬
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 
 #배포
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',  # 또는 postgresql
-#         'HOST':   os.getenv('DB_HOST', ''),  # 기본을 빈 문자열로
-#         'NAME':   os.getenv('DB_NAME', ''),
-#         'USER':   os.getenv('DB_USER', ''),
-#         'PASSWORD': os.getenv('DB_PASSWORD', ''),
-#         # 기본 포트 사용 시 PORT 설정 불필요
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',  # 또는 postgresql
+        'HOST':   os.getenv('DB_HOST', ''),  # 기본을 빈 문자열로
+        'NAME':   os.getenv('DB_NAME', ''),
+        'USER':   os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        # 기본 포트 사용 시 PORT 설정 불필요
+    }
+}
 
 
 # Password validation

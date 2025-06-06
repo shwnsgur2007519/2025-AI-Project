@@ -86,6 +86,7 @@ def index(request):
             'color': s.color,
             'is_done':s.is_done,
             'type':type,
+            'task_type':str(s.task_type),
         }
         for type, s in schedule_list
     ]
@@ -187,6 +188,7 @@ def schedule_week(request):
                 'owner_id': s.owner.id,
                 'color': s.color,
                 'is_done': s.is_done,
+                'task_type': str(s.task_type)
             })
 
     
@@ -199,6 +201,7 @@ def schedule_week(request):
         'prev_date': (start_of_week - datetime.timedelta(days=7)).strftime('%Y-%m-%d'),
         'next_date': (start_of_week + datetime.timedelta(days=7)).strftime('%Y-%m-%d'),
         'has_ai_session': 'ai_result_json' in request.session,
+        'today': timezone.now().date(),
     }
     return render(request, 'calendar/schedule_week.html', context)
 
