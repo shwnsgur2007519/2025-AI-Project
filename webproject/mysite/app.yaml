@@ -1,7 +1,7 @@
 runtime: python39
 
 # 요청이 들어왔을 때 Gunicorn이 실행될 커맨드
-entrypoint: gunicorn -b :$PORT config.wsgi:application
+entrypoint: bash -c "python manage.py migrate && gunicorn -b :$PORT config.wsgi:application"
 
 # 정적 파일(collectstatic 결과)을 서빙하기 위한 핸들러
 handlers:
