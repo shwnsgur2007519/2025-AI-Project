@@ -16,7 +16,7 @@ handlers:
 env_variables:
   DJANGO_SECRET_KEY: "u#m-r54w(g&yb3zktktc1x@+qyb=&p1v5shwxoei$3qej2ywr_!"
   DB_NAME: "django_db"
-  DB_USER: "root"
+  DB_USER: "django"
   DB_PASSWORD: "5(Mv3Fl{QYch;foK"
   # HOST로 UNIX socket 경로 지정
   DB_HOST: "/cloudsql/aiproject-462109:asia-northeast3:myproject-db"
