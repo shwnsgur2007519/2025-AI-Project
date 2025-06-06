@@ -1,18 +1,12 @@
 steps:
   - name: python:3.9
     entrypoint: bash
-    env:
-      - DB_HOST=/cloudsql/aiproject-462109:asia-northeast3:myproject-db
-      - DB_NAME=django_db
-      - DB_USER=root
-      - DB_PASSWORD=5(Mv3Fl{QYch;foK
     args:
       - "-c"
       - |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         python manage.py collectstatic --noinput
-        python manage.py migrate
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
     entrypoint: bash
