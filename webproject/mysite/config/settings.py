@@ -22,6 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'insecure-dev-key')  # 환경변수에서 불러옴
+SECRET_KEY = 'u#m-r54w(g&yb3zktktc1x@+qyb=&p1v5shwxoei$3qej2ywr_!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
