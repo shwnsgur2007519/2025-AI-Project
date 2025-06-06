@@ -1,5 +1,5 @@
 steps:
-  # 1) Python 환경에서 패키지 설치 + collectstatic
+  # 1) Python 환경에서 패키지 설치 + static 수집 + migrate
   - name: python:3.9
     entrypoint: bash
     args:
@@ -8,13 +8,12 @@ steps:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         python manage.py collectstatic --noinput
+        python manage.py migrate  # ✅ 여기 추가
 
-  # 2) GCP SDK 환경에서 App Engine 배포
+  # 2) App Engine 배포
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
     entrypoint: bash
     args:
       - "-c"
       - |
         gcloud app deploy app.yaml --quiet
-
-timeout: "1200s"
