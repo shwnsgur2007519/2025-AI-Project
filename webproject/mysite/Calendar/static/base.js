@@ -95,10 +95,16 @@ function insert_text(item, div){
     if(item.is_done === true){
       const del=document.createElement('del');
       div.appendChild(del);
-      del.textContent=`✓ ${item.task_name}`;
+      if(item.task_type !== "None")
+        del.textContent=`✓ [${item.task_type}] ${item.task_name}`;
+      else
+        del.textContent=`✓ ${item.task_name}`;
     }
     else{
-      div.textContent = `✓ ${item.task_name}`;
+      if(item.task_type !== "None")
+        div.textContent = `✓ [${item.task_type}] ${item.task_name}`;
+      else
+        div.textContent = `✓ ${item.task_name}`;
     }
   }
   else if(item.type === "ai_schedule"){
@@ -109,7 +115,13 @@ function insert_text(item, div){
       div.textContent = `[${item.task_type}] ${item.task_name}`;
     }
     else{
-      div.textContent = item.task_name;
+      div.textContent = `${item.task_name}`;
     }
   }
+}
+
+function insert_text_detail(item){  
+  if(item.task_type === "None")
+    return item.task;
+  else return `[${item.task_type}] ${item.task}`
 }

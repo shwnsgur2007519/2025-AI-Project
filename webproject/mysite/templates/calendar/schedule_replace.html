@@ -5,6 +5,16 @@
 
   <form method="post" action="{% url 'calendar:ai_run' %}">
     {% csrf_token %}
+    <div class="mb-3">
+      <label for="schedule-start" class="form-label">재배치 시작일 (기본: 현재)</label>
+      <input type="datetime-local" id="schedule-start" name="schedule_start"
+            class="form-control"
+            value="{{ default_start }}">
+      <label for="schedule-end" class="form-label">재배치 마감일 (기본: 1주일 뒤)</label>
+      <input type="datetime-local" id="schedule-end" name="schedule_end"
+            class="form-control"
+            value="{{ default_end }}">
+    </div>
     <table class="table table-hover align-middle">
       <thead class="table-light">
         <tr>
@@ -46,7 +56,16 @@
   </form>
 </div>
 
+{% if messages %}
 <script>
+  {% for msg in messages %}
+    alert("{{ msg }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+<script>
+  
   // 전체 선택/해제 기능
   document.addEventListener('DOMContentLoaded', function() {
     const selectAll = document.getElementById('select-all');

@@ -1,8 +1,12 @@
-import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from .models import Schedule, ScheduleType
 from django.contrib.auth.models import User
 from datetime import datetime
+import os
+import sys
+import numpy as np
+import random
+
 
 def toSchedule(relocated_list):
     """
@@ -82,107 +86,169 @@ def toJson(instances):
         result.append(data)
     return result
 
-def schedule_relocation(task_list):
-    import numpy as np
-    import random
-    import math
-    import calendar
-    from datetime import datetime, date, timedelta
+
+def schedule_relocation(task_list, schedule_start, schedule_end):
     import os
+    import random
+    import numpy as np
+    from datetime import datetime, timedelta, time
 
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    weight_file_path = os.path.join(BASE_DIR, "trained_weights.npy")
-
-    state_dim = 3
-    action_dim = len(task_list)
+    # 1) 기본 설정
+    state_dim   = 3
+    action_dim  = len(task_list)
     feature_dim = state_dim + action_dim
 
-    def get_feature(state, action):
+    if len(task_list) == 0:
+        return "하나 이상의 일정을 선택해주세요."
+
+    def get_feature(state, action, state_dim, action_dim):
         one_hot = np.zeros(action_dim, dtype=np.float32)
         one_hot[action] = 1.0
         return np.concatenate([state.astype(np.float32), one_hot])
 
-    if not os.path.exists(weight_file_path):
-        raise FileNotFoundError(f"가중치 파일이 없습니다: {weight_file_path}")
-
-    w_loaded = np.load(weight_file_path)
-    old_dim = w_loaded.shape[0]
-    if old_dim != feature_dim:
-        w = np.zeros(feature_dim, dtype=np.float32)
-        w[:state_dim] = w_loaded[:state_dim]
-        old_action_dim = old_dim - state_dim
-        copy_cnt = min(old_action_dim, action_dim)
-        if copy_cnt > 0:
-            w[state_dim : state_dim + copy_cnt] = w_loaded[state_dim : state_dim + copy_cnt]
+    # 2) 학습된 가중치 불러오기
+    weight_file = os.path.join(os.path.dirname(__file__), "trained_weights.npy")
+    if os.path.exists(weight_file):
+        w_loaded = np.load(weight_file)
+        old_dim  = w_loaded.shape[0]
+        if old_dim != feature_dim:
+            w = np.zeros(feature_dim, dtype=np.float32)
+            w[:min(old_dim, feature_dim)] = w_loaded[:min(old_dim, feature_dim)]
+        else:
+            w = w_loaded.astype(np.float32)
     else:
-        w = w_loaded.astype(np.float32)
+        raise FileNotFoundError(f"가중치 파일이 없습니다: {weight_file}")
 
-    today = date.today()
-    month_start = datetime.combine(date(today.year, today.month, 1), datetime.min.time())
-    _, month_days = calendar.monthrange(today.year, today.month)
+    # 3) 스케줄 기간 정보 계산
+    window_minutes = int((schedule_end - schedule_start).total_seconds() // 60)
+    window_days    = (schedule_end.date() - schedule_start.date()).days + 1
+    total_minutes_window = window_days * 1440
+    blocked_minutes      = 420 * window_days  # 7:00~14:00 placeholder
+    available_minutes    = total_minutes_window - blocked_minutes
 
+    # 4) 마감일 태스크 수집
     deadline_tasks = []
     for idx, t in enumerate(task_list):
-        due_str = t.get("due_date", None)
-        if due_str:
-            due_dt = datetime.strptime(due_str, "%Y-%m-%d %H:%M:%S")
-            delta = due_dt - month_start
-            due_offset = int(delta.total_seconds() // 60)
+        dl = t.get("deadline")
+        if dl:
+            dl_dt = datetime.strptime(dl, "%Y-%m-%d %H:%M:%S")
+            due_offset = int((dl_dt - schedule_start).total_seconds() // 60)
             deadline_tasks.append((idx, t["duration_minutes"], due_offset))
+    deadline_tasks.sort(key=lambda x: x[2])
+    deadline_indices    = [idx for idx, _, _ in deadline_tasks]
+    no_deadline_indices = [i for i, t in enumerate(task_list) if not t.get("deadline")]
 
-    def check_deadline_feasible_from(remaining_deadline_tasks, curr_time):
-        for (idx, dur, due_offset) in remaining_deadline_tasks:
-            tod = curr_time % 1440
-            if tod > 22 * 60:
-                curr_time += (1440 - tod) + (7 * 60)
-            elif tod < 7 * 60:
-                curr_time += (7 * 60 - tod)
-            if curr_time + dur > due_offset:
+    # 5) 추가 휴식 계산
+    task_minutes = sum(t["duration_minutes"] for t in task_list)
+    reserved_for_deadlines = len(deadline_indices) * 25
+    remaining_time = available_minutes - task_minutes - reserved_for_deadlines
+    if no_deadline_indices:
+        max_additional_break = max(30, remaining_time // len(no_deadline_indices))
+    else:
+        max_additional_break = 10
+
+    # 6) datetime 기반 앞배치 함수 정의
+    def check_deadline_feasible_prefix(tasks, curr_dt):
+        for idx, dur, due_offset in tasks:
+            # 업무 시간 보정
+            if curr_dt.time() < time(7, 0):
+                curr_dt = curr_dt.replace(hour=7, minute=0)
+            elif curr_dt.time() > time(22, 0):
+                curr_dt = (curr_dt + timedelta(days=1)).replace(hour=7, minute=0)
+
+            end_dt = curr_dt + timedelta(minutes=dur)
+            due_dt = schedule_start + timedelta(minutes=due_offset)
+
+            if end_dt > due_dt:
                 return False
-            curr_time += dur + 10
+
+            curr_dt = end_dt + timedelta(minutes=10)  # 휴식 10분
         return True
 
-    start_time_for_deadline = 7 * 60
-    if not check_deadline_feasible_from(deadline_tasks, start_time_for_deadline):
-        return task_list  # 불가능할 경우 원본 그대로 반환
+    # 초기 검사: 모든 마감일 작업이 schedule_start부터 가능한지 확인
+    if not check_deadline_feasible_prefix(deadline_tasks, schedule_start):
+        print("❌ 모든 마감일 작업을 주어진 기간 내에 배치할 수 없습니다. 프로그램을 종료합니다.")
+        return "일정을 배치할 수 없습니다."
 
+    # 7) 예외 정의
+    class NoValidTaskError(Exception):
+        pass
+
+    # 8) 환경 클래스 정의
     class SimpleScheduleEnv:
-        def __init__(self, task_list):
-            self.task_list = task_list
-            self.total_actions = len(task_list)
-            self.month_start = month_start
-            self.month_days = month_days
+        def __init__(self, task_list, max_additional_break):
+            self.task_list      = task_list
+            self.total_actions  = len(task_list)
+            self.schedule_start = schedule_start
+            self.window_days    = window_days
+            self.window_minutes = window_minutes
+            self.max_additional_break = max_additional_break
+            self.deadline_indices     = deadline_indices
+
+            self.due_date_offsets = []
+            for t in task_list:
+                dl = t.get("deadline")
+                if dl:
+                    dt = datetime.strptime(dl, "%Y-%m-%d %H:%M:%S")
+                    self.due_date_offsets.append(int((dt - schedule_start).total_seconds() // 60))
+                else:
+                    self.due_date_offsets.append(None)
 
         def reset(self):
-            self.idx = 0
-            self.schedule = [-1] * self.total_actions
-            self.start_times = []
-            self.current_time = 7 * 60
-            self.done = False
+            self.idx           = 0
+            self.schedule      = [-1] * self.total_actions
+            self.scheduled_set = set()
+            self.start_times   = []
+            self.current_dt    = self.schedule_start
+            self._enforce_business_hours()
+            self.done          = False
             return self._get_state()
 
+        def _enforce_business_hours(self):
+            if self.current_dt.time() < time(7, 0):
+                self.current_dt = self.current_dt.replace(hour=7, minute=0, second=0)
+            elif self.current_dt.time() > time(22, 0):
+                nxt = self.current_dt + timedelta(days=1)
+                self.current_dt = nxt.replace(hour=7, minute=0, second=0)
+
         def _get_state(self):
-            remaining = sum(1 for i in range(self.total_actions) if i not in self.schedule)
-            return np.array([
-                self.idx / self.total_actions,
-                remaining / self.total_actions,
-                (self.current_time % 1440) / 1440
-            ], dtype=np.float32)
+            rem      = self.total_actions - len(self.scheduled_set)
+            tod_frac = (self.current_dt.hour * 60 + self.current_dt.minute) / 1440
+            return np.array([self.idx / self.total_actions, rem / self.total_actions, tod_frac], dtype=np.float32)
 
         def step(self, action):
             if self.done:
                 return self._get_state(), 0, True, {}
 
-            self.schedule[self.idx] = action
-            self.start_times.append(self.current_time)
-            dur = self.task_list[action]["duration_minutes"]
-            self.current_time += dur + 10 + random.randint(10, 30)
+            self._enforce_business_hours()
 
-            tod = self.current_time % 1440
-            if tod > 22 * 60:
-                self.current_time += (1440 - tod) + 7 * 60
-            elif tod < 7 * 60:
-                self.current_time += (7 * 60 - tod)
+            dur = self.task_list[action]["duration_minutes"]
+            self.current_dt += timedelta(minutes=dur)
+            work_end = self.current_dt
+
+            # 휴식 시간: 마감일 작업이면 10,20,30분 랜덤, 아니면 최대 휴식 범위 내 10분 단위 랜덤
+            if action in self.deadline_indices:
+                break_min = random.choice([10, 20, 30])
+            else:
+                max_b = (self.max_additional_break // 10) * 10
+                opts = list(range(30, max_b + 1, 10)) if max_b >= 30 else [30]
+                break_min = random.choice(opts)
+            self.current_dt += timedelta(minutes=break_min)
+
+            due_off = self.due_date_offsets[action]
+            if due_off is not None:
+                due_dt = self.schedule_start + timedelta(minutes=due_off)
+                start_dt = work_end - timedelta(minutes=dur)
+                end_dt = work_end
+                if start_dt > due_dt or end_dt > due_dt:
+                    raise RuntimeError(f"작업[{action}] 마감일 초과")
+
+            self.schedule[self.idx] = action
+            self.scheduled_set.add(action)
+            start_min = int((work_end - timedelta(minutes=dur) - self.schedule_start).total_seconds() // 60)
+            self.start_times.append(start_min)
+
+            self._enforce_business_hours()
 
             self.idx += 1
             if self.idx >= self.total_actions:
@@ -190,24 +256,111 @@ def schedule_relocation(task_list):
 
             return self._get_state(), 0, self.done, {}
 
-    env = SimpleScheduleEnv(task_list)
-    state = env.reset()
+    # 9) 스케줄링 여러번 재시도
+    max_trials = 100
+    for trial in range(1, max_trials + 1):
+        try:
+            env = SimpleScheduleEnv(task_list, max_additional_break)
+            state = env.reset()
+            schedule, start_times = [], []
 
-    while not env.done:
-        valid = [a for a in range(action_dim) if a not in env.schedule]
-        q_vals = [np.dot(w, get_feature(state, a)) if a in valid else -np.inf for a in range(action_dim)]
-        action = int(np.argmax(q_vals))
-        next_state, _, done, _ = env.step(action)
-        state = next_state
+            while not env.done:
+                valid = []
+                rem_d = [a for a in deadline_indices if a not in env.scheduled_set]
+                curr_min = int((env.current_dt - schedule_start).total_seconds() // 60)
 
-    week_start = month_start
-    relocated = []
-    for idx, start_min in zip(env.schedule, env.start_times):
-        task = task_list[idx]
-        start_dt = week_start + timedelta(minutes=start_min)
+                if rem_d:
+                    for a in rem_d:
+                        dur = task_list[a]["duration_minutes"]
+                        off = env.due_date_offsets[a]
+                        if off is not None and curr_min + dur > off:
+                            continue
+                        # 남은 마감 작업 중에서 현재 시간이후 마감인 작업만 검사
+                        future_deadline_tasks = [
+                            (i, task_list[i]["duration_minutes"], env.due_date_offsets[i])
+                            for i in rem_d if i != a and curr_min + dur + 10 <= env.due_date_offsets[i]
+                        ]
+                        if not check_deadline_feasible_prefix(future_deadline_tasks, schedule_start + timedelta(minutes=curr_min + dur + 10)):
+                            continue
+                        valid.append(a)
+                else:
+                    valid = [a for a in no_deadline_indices if a not in env.scheduled_set]
 
-        # 원본 task를 복사하여 start_time만 교체
-        updated = task.copy()
-        updated["start_time"] = start_dt.strftime("%Y-%m-%d %H:%M:%S")
-        relocated.append(updated)
-    return relocated
+                if not valid:
+                    raise NoValidTaskError()
+
+                q_vals = [-np.inf] * action_dim
+                for a in valid:
+                    phi = get_feature(state, a, state_dim, action_dim)
+                    q_vals[a] = np.dot(w, phi)
+                action = int(np.argmax(q_vals))
+
+                state, _, done, _ = env.step(action)
+                schedule.append(action)
+                start_times.append(env.start_times[-1])
+
+                if env.current_dt > schedule_end:
+                    raise NoValidTaskError()
+
+            print(f"✅ 시도 {trial} 성공적으로 스케줄링 완료!")
+            break
+
+        except NoValidTaskError:
+            print(f"❌ 시도 {trial} 실패: 유효한 작업이 없습니다. 재시도합니다…")
+        except RuntimeError as e:
+            print(f"❌ 시도 {trial} 실패: {e}. 재시도합니다…")
+
+    else:
+        print(f"❌ {max_trials}번 모두 실패했습니다. 배치 불가")
+        return "일정을 배치할 수 없습니다."
+
+    # 10) 결과 출력 및 마감일 위반 검사
+    violations = []
+    for idx, sm in zip(schedule, start_times):
+        t = task_list[idx]
+        dl = t.get("deadline")
+        st = schedule_start + timedelta(minutes=sm)
+        en = st + timedelta(minutes=t["duration_minutes"])
+        if dl:
+            due_dt = datetime.strptime(dl, "%Y-%m-%d %H:%M:%S")
+            if st > due_dt or en > due_dt:
+                violations.append((t['subject'], t.get('task_type', 'N/A'), st, en, due_dt))
+
+    for idx, sm in zip(schedule, start_times):
+        t = task_list[idx]
+        st = schedule_start + timedelta(minutes=sm)
+        if st.time() < time(7, 0):
+            st = st.replace(hour=7, minute=0, second=0)
+        en = st + timedelta(minutes=t["duration_minutes"])
+        print(f"{st:%Y-%m-%d %H:%M} – {en:%H:%M}: {t['subject']} (타입: {t.get('task_type', 'N/A')})")
+
+    if violations:
+        print("\n=== 마감일 위반 작업 ===")
+        for subj, typ, s, e, d in violations:
+            print(f"{subj} (타입: {typ}) — 시작: {s:%Y-%m-%d %H:%M}, 종료: {e:%Y-%m-%d %H:%M}, 마감: {d:%Y-%m-%d %H:%M}")
+    else:
+        print("\n모든 작업이 마감일을 준수했습니다.")
+
+    # 11) 결과 반환: 시작 시간 포함
+    result = []
+    for idx, sm in zip(schedule, start_times):
+        t = task_list[idx].copy()
+        t["start_time"] = (schedule_start + timedelta(minutes=sm)).strftime("%Y-%m-%d %H:%M:%S")
+        result.append(t)
+
+    # 12) 최종 마감일 준수 체크 (로그)
+    violations = []
+    for idx, sm in zip(schedule, start_times):
+        t = task_list[idx]
+        dl = t.get("deadline")
+        if dl:
+            due_dt = datetime.strptime(dl, "%Y-%m-%d %H:%M:%S")
+            end_dt = schedule_start + timedelta(minutes=sm + t["duration_minutes"])
+            if end_dt > due_dt:
+                violations.append((t['subject'], t.get('task_type', 'N/A'), end_dt, due_dt))
+    if violations:
+        for subj, typ, e_dt, d_dt in violations:
+            print(f"❗ 마감일 위반: {subj} ({typ}) 종료:{e_dt:%Y-%m-%d %H:%M}, 마감:{d_dt:%Y-%m-%d %H:%M}")
+
+    return result
+

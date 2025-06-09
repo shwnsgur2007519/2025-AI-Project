@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.timezone import make_aware
-from django.utils import timezone
+from django.utils import timezone as tz
 from django.contrib import messages
 from django.urls import reverse
 from django.db import transaction
@@ -17,9 +17,16 @@ from .ai import schedule_relocation, toJson, toSchedule
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from datetime import timedelta, timezone, datetime
+
+KST = timezone(timedelta(hours=23))
+
+def how_to_use(request):
+    return render(request, 'calendar/how_to_use.html', {'has_ai_session': 'ai_result_json' in request.session})
+
 
 def index(request):
-    today = datetime.datetime.today()
+    today = datetime.today()
     year = int(request.GET.get('year', today.year))
     month = int(request.GET.get('month', today.month))
 
@@ -121,15 +128,15 @@ def schedule_week(request):
     date_str = request.GET.get('date')
     if date_str:
         try:
-            reference_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+            reference_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError:
-            reference_date = timezone.now().date()
+            reference_date = datetime.now(KST).date()
     else:
-        reference_date = timezone.now().date()
+        reference_date = datetime.now(KST).date()
 
     # 월요일 기준 주 시작일
-    start_of_week = reference_date - datetime.timedelta(days=reference_date.weekday())
-    days = [start_of_week + datetime.timedelta(days=i) for i in range(7)]
+    start_of_week = reference_date - timedelta(days=reference_date.weekday())
+    days = [start_of_week + timedelta(days=i) for i in range(7)]
 
     # 수정 중 일정 띄우기
     ai_result_json = request.session.get('ai_result_json', '')
@@ -198,10 +205,10 @@ def schedule_week(request):
         'schedule_json': json.dumps(schedule_json),
         'hours': range(0, 24),
         'user_id': request.user.id if request.user.is_authenticated else None,
-        'prev_date': (start_of_week - datetime.timedelta(days=7)).strftime('%Y-%m-%d'),
-        'next_date': (start_of_week + datetime.timedelta(days=7)).strftime('%Y-%m-%d'),
+        'prev_date': (start_of_week - timedelta(days=7)).strftime('%Y-%m-%d'),
+        'next_date': (start_of_week + timedelta(days=7)).strftime('%Y-%m-%d'),
         'has_ai_session': 'ai_result_json' in request.session,
-        'today': timezone.now().date(),
+        'today': datetime.now(KST).date(),
     }
     return render(request, 'calendar/schedule_week.html', context)
 
@@ -244,7 +251,6 @@ def schedule_edit(request, pk):
         'id': pk,
     })
 
-
 @login_required(login_url='common:login')
 def schedule_list(request):
     schedules = Schedule.objects.filter(owner=request.user).order_by('deadline')
@@ -266,7 +272,7 @@ def schedule_type_create(request):
 @login_required(login_url='common:login')
 def schedule_type_list(request):
     types = ScheduleType.objects.filter(owner=request.user)
-    return render(request, 'calendar/schedule_type_list.html', {'types': types})
+    return render(request, 'calendar/schedule_type_list.html', {'types': types,'has_ai_session': 'ai_result_json' in request.session})
 
 @login_required(login_url='common:login')
 def schedule_type_edit(request, pk):
@@ -278,7 +284,7 @@ def schedule_type_edit(request, pk):
             return redirect('calendar:schedule_type_list')
     else:
         form = ScheduleTypeForm(instance=schedule_type)
-    return render(request, 'calendar/schedule_type_form.html', {'form': form, 'is_edit': True})
+    return render(request, 'calendar/schedule_type_form.html', {'form': form, 'is_edit': True,'has_ai_session': 'ai_result_json' in request.session})
 
 @login_required(login_url='common:login')
 def schedule_type_delete(request, pk):
@@ -286,7 +292,7 @@ def schedule_type_delete(request, pk):
     if request.method == 'POST':
         schedule_type.delete()
         return redirect('calendar:schedule_type_list')
-    return render(request, 'calendar/schedule_type_confirm_delete.html', {'type': schedule_type})
+    return render(request, 'calendar/schedule_type_confirm_delete.html', {'type': schedule_type, 'has_ai_session': 'ai_result_json' in request.session})
 
 @csrf_exempt
 @login_required
@@ -322,6 +328,9 @@ def schedule_delete(request, pk):
         return redirect('calendar:schedule_list')
     return render(request, 'calendar/schedule_confirm_delete.html', {'type': schedule})
 
+def now_kst_naive():
+    return datetime.now(timezone(timedelta(hours=9))).replace(tzinfo=None)
+
 @login_required(login_url='common:login')
 def schedule_replace(request):
     data = Schedule.objects.filter(
@@ -329,10 +338,17 @@ def schedule_replace(request):
         is_done=False,
         is_fixed=False,
     ).filter(
-        Q(deadline__gt=timezone.now()) |
+        Q(deadline__gt=now_kst_naive() - timedelta(days=3)) |  #바꾸기!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         Q(deadline__isnull=True)
     ).order_by('deadline')
-    return render(request, 'calendar/schedule_replace.html', {'schedules': data})
+    
+    default_start = (now_kst_naive()).strftime("%Y-%m-%dT%H:%M")
+    default_end = (now_kst_naive() + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M")
+    return render(request, 'calendar/schedule_replace.html', 
+                  {'schedules': data, 
+                   'default_start': default_start, 
+                   'default_end': default_end, 
+                   'has_ai_session': 'ai_result_json' in request.session})
 
 @csrf_exempt
 def ai_run(request):
@@ -341,7 +357,30 @@ def ai_run(request):
         schedules = Schedule.objects.filter(pk__in=selected_ids)
 
         data_json = toJson(schedules)
-        update_json = schedule_relocation(data_json)
+
+        schedule_end_str = request.POST.get('schedule_end')
+        schedule_start_str = request.POST.get('schedule_start')
+        
+        if schedule_end_str:
+            try:
+                # HTML datetime-local 형식: 'YYYY-MM-DDTHH:MM'
+                schedule_end = datetime.strptime(schedule_end_str, "%Y-%m-%dT%H:%M")
+                # schedule_end = tz.make_aware(schedule_end)  # Django 타임존 aware 처리
+                schedule_start = datetime.strptime(schedule_start_str, "%Y-%m-%dT%H:%M")
+                # schedule_start = tz.make_aware(schedule_start)  # Django 타임존 aware 처리
+            except ValueError:
+                schedule_end = now_kst_naive() + timedelta(days=7)  # fallback
+                schedule_start = now_kst_naive()  # fallback
+        else:
+            schedule_end = (now_kst_naive() + timedelta(days=7)).replace(tzinfo=None)
+            schedule_start = (now_kst_naive()).replace(tzinfo=None)
+        
+        update_json = schedule_relocation(data_json, schedule_start, schedule_end)
+        print("debug: "+str(json.dumps(data_json))+"\n"+str(schedule_start)+"\n" +str(schedule_end))
+        if type(update_json)==type(""):
+            messages.warning(request, update_json)
+            # messages.warning(request, "debug: "+str(data_json)+"\n"+str(schedule_start)+"\n" +str(schedule_end))
+            return redirect('calendar:schedule_replace')
 
         # 임시로 저장할 데이터 (AI 처리 결과)
         request.session['ai_result_json'] = json.dumps(update_json)
@@ -351,7 +390,6 @@ def ai_run(request):
 @login_required(login_url='common:login')
 def ai_confirm(request):
     import json
-    from datetime import datetime
     from django.utils.timezone import make_aware
 
     ai_result_raw = request.session.pop('ai_result_json', None)
@@ -392,3 +430,32 @@ def ai_confirm(request):
 def ai_cancel(request):
     request.session.pop('ai_result_json', None)
     return redirect(request.META.get('HTTP_REFERER', 'calendar:index'))
+
+
+def test(request):
+    import json
+    from datetime import datetime
+    from .ai import schedule_relocation  # 상대경로 import
+    import os
+
+    # 1. JSON 파일 불러오기
+    json_file = os.path.join(os.path.dirname(__file__), "testjson.json")
+    with open(json_file, 'r', encoding='utf-8') as f:
+        task_list = json.load(f)
+
+    # 2. 일정 시작/종료 시간 정의
+    schedule_start = datetime.strptime("2025-06-08 17:07:00", "%Y-%m-%d %H:%M:%S")
+    schedule_end   = datetime.strptime("2025-06-15 17:07:00", "%Y-%m-%d %H:%M:%S")
+
+    # 3. 함수 실행
+    result = schedule_relocation(task_list, schedule_start, schedule_end)
+
+    # 4. 결과 출력
+    print("\n\n재배치 결과:")
+    if isinstance(result, str):
+        print(result)
+    else:
+        for task in result:
+            print(f"- {task.get('task_name', '이름 없음')}: 시작 → {task['start_time']}")
+    
+    return redirect('calendar:index')

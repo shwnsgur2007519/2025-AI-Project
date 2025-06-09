@@ -68,6 +68,7 @@ function renderWeekSchedule() {
       div.dataset.exam = item.is_exam_task;
       div.dataset.owner = item.owner_id;
       div.dataset.done = item.is_done;
+      div.dataset.task_type = item.task_type;
 
       cell.appendChild(div);
     });
@@ -76,7 +77,7 @@ function renderWeekSchedule() {
 
 // ✅ 일정 상세 보기
 function openTaskDetail(el) {
-  document.getElementById("taskDetailModalLabel").textContent = el.dataset.task;
+  document.getElementById("taskDetailModalLabel").textContent = insert_text_detail(el.dataset);
   document.getElementById("detailSubject").textContent = el.dataset.subject || '없음';
   document.getElementById("detailDeadline").textContent = el.dataset.deadline || '없음';
   document.getElementById("detailFixed").textContent = el.dataset.fixed === "true" ? "예" : "아니오";

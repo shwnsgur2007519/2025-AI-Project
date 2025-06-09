@@ -41,17 +41,39 @@ class ScheduleForm(forms.ModelForm):
             'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
             'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         }
+        labels = {
+            'task_name':         '일정 이름',
+            'duration_minutes':  '소요 시간(분)',
+            'difficulty':        '난이도',
+            'importance':        '중요도',
+            'task_type':         '일정 유형',
+            'subject':           '과목',
+            'is_exam_task':      '시험 일정 여부',
+            'exam':              '관련 시험',
+            'deadline':          '마감 기한',
+            'start_time':        '시작 시간',
+            'end_time':          '종료 시간',
+            'is_fixed':          '고정 여부',
+            'color':             '색상',
+        }
 
     def __init__(self, *args, **kwargs):
-        owner = kwargs.pop('owner', None)  # request.owner 받아옴
+        owner = kwargs.pop('owner', None)
         super().__init__(*args, **kwargs)
-        # exam 항목은 자기 자신을 참조하므로, 자신은 선택지에서 제외
-        if self.instance.pk:
-            self.fields['exam'].queryset = Schedule.objects.exclude(pk=self.instance.pk)
-        if owner:
-            self.fields['exam'].queryset = Schedule.objects.filter(owner=owner)
+
+        # owner 기준으로 task_type 필터링
         if owner is not None:
             self.fields['task_type'].queryset = ScheduleType.objects.filter(owner=owner)
+
+        # exam 필드: 자기 자신 제외 + 해당 사용자 + 시험 일정만
+        if owner is not None:
+            queryset = Schedule.objects.filter(owner=owner, is_exam_task=True)
+            if self.instance.pk:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            self.fields['exam'].queryset = queryset
+        else:
+            # owner 없으면 비워 두기
+            self.fields['exam'].queryset = Schedule.objects.none()
 
 class ScheduleTypeForm(forms.ModelForm):
     class Meta:

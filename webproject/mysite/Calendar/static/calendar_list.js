@@ -56,6 +56,7 @@ function openScheduleModal(el) {
         li.dataset.id = item.id;
         li.dataset.owner = item.owner_id;
         li.dataset.done = item.is_done;
+        li.dataset.task_type = item.task_type;
 
         li.onclick = () => openTaskDetail(li);
         listEl.appendChild(li);
@@ -68,7 +69,7 @@ function openScheduleModal(el) {
 
 // ✅ 상세 보기
 function openTaskDetail(el) {
-  document.getElementById("taskDetailModalLabel").textContent = el.dataset.task;
+  document.getElementById("taskDetailModalLabel").textContent = insert_text_detail(el.dataset);
   document.getElementById("detailSubject").textContent = el.dataset.subject || '없음';
   document.getElementById("detailDeadline").textContent = el.dataset.deadline || '없음';
   document.getElementById("detailFixed").textContent = el.dataset.fixed === "true" ? "예" : "아니오";
@@ -186,6 +187,7 @@ function renderSchedules() {
       div.dataset.fixed = item.is_fixed;
       div.dataset.exam = item.is_exam_task;
       div.dataset.owner = item.owner_id;
+      div.dataset.task_type = item.task_type;
       div.setAttribute("role", "button");
       div.setAttribute("onclick", "openTaskDetail(this)");
       insert_text(item, div);
