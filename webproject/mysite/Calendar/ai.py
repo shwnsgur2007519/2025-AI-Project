@@ -363,4 +363,3 @@ def schedule_relocation(task_list, schedule_start, schedule_end):
             print(f"❗ 마감일 위반: {subj} ({typ}) 종료:{e_dt:%Y-%m-%d %H:%M}, 마감:{d_dt:%Y-%m-%d %H:%M}")
 
     return result
-
