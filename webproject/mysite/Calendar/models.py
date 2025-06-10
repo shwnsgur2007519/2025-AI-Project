@@ -45,7 +45,3 @@ class Schedule(models.Model):
     def __str__(self):
         return f"{self.task_name}[{self.owner}]"
 
-# class UserProfile(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE)
-#     start_time = models.TimeField(null=True, blank=True)
-#     end_time = models.TimeField(null=True, blank=True)

@@ -69,6 +69,7 @@ function renderWeekSchedule() {
       div.dataset.owner = item.owner_id;
       div.dataset.done = item.is_done;
       div.dataset.task_type = item.task_type;
+      div.dataset.duration_minutes = item.duration_minutes;
 
       cell.appendChild(div);
     });
@@ -82,6 +83,12 @@ function openTaskDetail(el) {
   document.getElementById("detailDeadline").textContent = el.dataset.deadline || '없음';
   document.getElementById("detailFixed").textContent = el.dataset.fixed === "true" ? "예" : "아니오";
   document.getElementById("detailExam").textContent = el.dataset.exam === "true" ? "예" : "아니오";
+  if(el.dataset.duration_minutes !== undefined) {
+    document.getElementById("detailTime").textContent = el.dataset.duration_minutes;
+  }
+  else {
+    document.getElementById("detailTime").textContent = "없음";
+  }
 
   const id = el.dataset.id;
   const editLink = document.getElementById("editTaskLink");

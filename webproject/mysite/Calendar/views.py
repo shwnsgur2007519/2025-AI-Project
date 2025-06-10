@@ -93,8 +93,9 @@ def index(request):
             'owner_id': s.owner.id,
             'color': s.color,
             'is_done':s.is_done,
-            'type':type,
-            'task_type':str(s.task_type),
+            'type' : type,
+            'task_type' : str(s.task_type),
+            'duration_minutes' : s.duration_minutes
         }
         for type, s in schedule_list
     ]
@@ -196,7 +197,8 @@ def schedule_week(request):
                 'owner_id': s.owner.id,
                 'color': s.color,
                 'is_done': s.is_done,
-                'task_type': str(s.task_type)
+                'task_type': str(s.task_type),
+                'duration_minutes': s.duration_minutes
             })
 
     
@@ -355,40 +357,43 @@ def schedule_replace(request):
                    'default_end': default_end, 
                    'has_ai_session': 'ai_result_json' in request.session})
 
-@csrf_exempt
+@require_POST
 def ai_run(request):
-    if request.method == 'POST':
-        selected_ids = request.POST.getlist('selected_ids')
-        schedules = Schedule.objects.filter(pk__in=selected_ids)
+    selected_ids = request.POST.getlist('selected_ids')
+    schedules = Schedule.objects.filter(pk__in=selected_ids)
+    data_json = toJson(schedules)
 
-        data_json = toJson(schedules)
+    # --- (수정됨) 가용 시간을 POST 데이터에서 가져오기 ---
+    available_start_time = request.POST.get('available_start_time')
+    available_end_time = request.POST.get('available_end_time')
 
-        schedule_end_str = request.POST.get('schedule_end')
-        schedule_start_str = request.POST.get('schedule_start')
-        
-        if schedule_end_str:
-            try:
-                # HTML datetime-local 형식: 'YYYY-MM-DDTHH:MM'
-                schedule_end = datetime.strptime(schedule_end_str, "%Y-%m-%dT%H:%M")
-                # schedule_end = tz.make_aware(schedule_end)  # Django 타임존 aware 처리
-                schedule_start = datetime.strptime(schedule_start_str, "%Y-%m-%dT%H:%M")
-                # schedule_start = tz.make_aware(schedule_start)  # Django 타임존 aware 처리
-            except ValueError:
-                schedule_end = now_kst_naive() + timedelta(days=7)  # fallback
-                schedule_start = now_kst_naive()  # fallback
-        else:
-            schedule_end = (now_kst_naive() + timedelta(days=7)).replace(tzinfo=None)
-            schedule_start = (now_kst_naive()).replace(tzinfo=None)
-        
-        update_json = schedule_relocation(data_json, schedule_start, schedule_end)
-        print("debug: "+str(json.dumps(data_json))+"\n"+str(schedule_start)+"\n" +str(schedule_end))
-        if type(update_json)==type(""):
-            messages.warning(request, update_json)
-            # messages.warning(request, "debug: "+str(data_json)+"\n"+str(schedule_start)+"\n" +str(schedule_end))
-            return redirect('calendar:schedule_replace')
+    # --- (수정됨) 가져온 가용 시간을 세션에 저장 ---
+    if available_start_time:
+        request.session['user_available_start_time'] = available_start_time
+    if available_end_time:
+        request.session['user_available_end_time'] = available_end_time
+    
+    # 재배치 전체 기간 처리 (기존 로직)
+    schedule_start_str = request.POST.get('schedule_start')
+    schedule_end_str = request.POST.get('schedule_end')
+    
+    try:
+        schedule_start = datetime.strptime(schedule_start_str, "%Y-%m-%dT%H:%M")
+        schedule_end = datetime.strptime(schedule_end_str, "%Y-%m-%dT%H:%M")
+    except (ValueError, TypeError):
+        schedule_start = now_kst_naive()
+        schedule_end = now_kst_naive() + timedelta(days=7)
 
-        # 임시로 저장할 데이터 (AI 처리 결과)
-        request.session['ai_result_json'] = json.dumps(update_json)
+    # --- (수정됨) AI 재배치 함수에 가용 시간 정보 전달 ---
+    available_times = {'start': available_start_time, 'end': available_end_time}
+    update_json = schedule_relocation(data_json, schedule_start, schedule_end, available_times)
+    
+    # AI 처리 결과에 따른 분기 (기존 로직과 동일)
+    if isinstance(update_json, str):
+        messages.warning(request, update_json)
+        return redirect('calendar:schedule_replace')
+
+    request.session['ai_result_json'] = json.dumps(update_json)
     return redirect('calendar:index')
 
 @require_POST

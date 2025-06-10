@@ -57,7 +57,8 @@ function openScheduleModal(el) {
         li.dataset.owner = item.owner_id;
         li.dataset.done = item.is_done;
         li.dataset.task_type = item.task_type;
-
+        li.dataset.duration_minutes= item.duration_minutes;
+        
         li.onclick = () => openTaskDetail(li);
         listEl.appendChild(li);
       });
@@ -74,7 +75,13 @@ function openTaskDetail(el) {
   document.getElementById("detailDeadline").textContent = el.dataset.deadline || '없음';
   document.getElementById("detailFixed").textContent = el.dataset.fixed === "true" ? "예" : "아니오";
   document.getElementById("detailExam").textContent = el.dataset.exam === "true" ? "예" : "아니오";
-
+  if(el.dataset.duration_minutes !== undefined) {
+    document.getElementById("detailTime").textContent = el.dataset.duration_minutes;
+  }
+  else {
+    document.getElementById("detailTime").textContent = "없음";
+  }
+  
   const id = el.dataset.id;
   const editLink = document.getElementById("editTaskLink");
   editLink.href = `/calendar/schedule/${id}/edit/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
@@ -188,6 +195,7 @@ function renderSchedules() {
       div.dataset.exam = item.is_exam_task;
       div.dataset.owner = item.owner_id;
       div.dataset.task_type = item.task_type;
+      div.dataset.duration_minutes= item.duration_minutes;
       div.setAttribute("role", "button");
       div.setAttribute("onclick", "openTaskDetail(this)");
       insert_text(item, div);

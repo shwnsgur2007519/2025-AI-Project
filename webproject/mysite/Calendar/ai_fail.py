@@ -91,8 +91,10 @@ def schedule_relocation(task_list, schedule_start, schedule_end, available_times
     import os
     import random
     import numpy as np
-    from datetime import datetime, timedelta, time
-
+    from datetime import datetime, timedelta
+    import json
+    print(json.dumps(task_list), schedule_start, schedule_end, available_times)
+    
     # 1) 기본 설정
     state_dim   = 3
     action_dim  = len(task_list)
@@ -145,6 +147,7 @@ def schedule_relocation(task_list, schedule_start, schedule_end, available_times
         available_per_day = (end_t.hour - start_t.hour) * 60 + (end_t.minute - start_t.minute)
 
     available_minutes    = available_per_day * window_days
+
     # 4) 마감일 태스크 수집
     deadline_tasks = []
     for idx, t in enumerate(task_list):
@@ -156,7 +159,7 @@ def schedule_relocation(task_list, schedule_start, schedule_end, available_times
     deadline_tasks.sort(key=lambda x: x[2])
     deadline_indices    = [idx for idx, _, _ in deadline_tasks]
     no_deadline_indices = [i for i, t in enumerate(task_list) if not t.get("deadline")]
-
+    
     # 5) 추가 휴식 계산
     task_minutes = sum(t["duration_minutes"] for t in task_list)
     reserved_for_deadlines = len(deadline_indices) * 25
@@ -169,7 +172,6 @@ def schedule_relocation(task_list, schedule_start, schedule_end, available_times
     # 6) datetime 기반 앞배치 함수 정의
     def check_deadline_feasible_prefix(tasks, curr_dt):
         for idx, dur, due_offset in tasks:
-            # 업무 시간 보정
             current_time = curr_dt.time()
             is_outside_hours = False
             if is_overnight:
@@ -178,6 +180,7 @@ def schedule_relocation(task_list, schedule_start, schedule_end, available_times
                 else:
                     is_outside_hours = True
 
+            
             if is_outside_hours:
                 if is_overnight:
                     if start_t <= current_time or current_time < end_t:
@@ -196,18 +199,13 @@ def schedule_relocation(task_list, schedule_start, schedule_end, available_times
 
             end_dt = curr_dt + timedelta(minutes=dur)
             due_dt = schedule_start + timedelta(minutes=due_offset)
+
             if end_dt > due_dt:
                 return False
 
-            curr_dt = end_dt + timedelta(minutes=10)  # 휴식 10분
+            curr_dt = end_dt + timedelta(minutes=10)
         return True
 
-    # 초기 검사: 모든 마감일 작업이 schedule_start부터 가능한지 확인
-    if not check_deadline_feasible_prefix(deadline_tasks, schedule_start):
-        print("❌ 모든 마감일 작업을 주어진 기간 내에 배치할 수 없습니다. 프로그램을 종료합니다.")
-        return "일정을 배치할 수 없습니다."
-
-    # 7) 예외 정의
     class NoValidTaskError(Exception):
         pass
 
@@ -243,30 +241,32 @@ def schedule_relocation(task_list, schedule_start, schedule_end, available_times
         def _enforce_business_hours(self):
             current_time = self.current_dt.time()
             is_outside_hours = False
-
             if is_overnight:
+                # 유효하지 않은 시간: 종료 시간과 시작 시간 사이 (예: 02:00 ~ 22:00 사이)
                 if end_t < current_time < start_t:
                     is_outside_hours = True
             else:
+                # 유효하지 않은 시간: 시작 전 또는 종료 후
                 if not (start_t <= current_time <= end_t):
                     is_outside_hours = True
 
             if is_outside_hours:
+                curr_dt = self.current_dt
+
                 if is_overnight:
                     if start_t <= current_time or current_time < end_t:
-                        pass
+                        pass  # 이미 유효한 업무 시간
                     elif current_time < start_t:
-                        self.current_dt = self.current_dt.replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
+                        curr_dt = curr_dt.replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
                     else:
-                        self.current_dt = (self.current_dt + timedelta(days=1)).replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
+                        curr_dt = (curr_dt + timedelta(days=1)).replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
                 else:
                     if start_t <= current_time <= end_t:
-                        pass
+                        pass  # 유효
                     elif current_time < start_t:
-                        self.current_dt = self.current_dt.replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
+                        curr_dt = curr_dt.replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
                     else:
-                        self.current_dt = (self.current_dt + timedelta(days=1)).replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
-
+                        curr_dt = (curr_dt + timedelta(days=1)).replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
 
 
         def _get_state(self):
@@ -321,50 +321,69 @@ def schedule_relocation(task_list, schedule_start, schedule_end, available_times
             env = SimpleScheduleEnv(task_list, max_additional_break)
             state = env.reset()
             schedule, start_times = [], []
+            remaining_tasks = [i for i in range(len(task_list)) if i not in env.scheduled_set]
 
-            while not env.done:
-                valid = []
-                rem_d = [a for a in deadline_indices if a not in env.scheduled_set]
+            # Step 1: Q-value 기준 상위 후보 추림
+            q_candidates = sorted(
+                remaining_tasks,
+                key=lambda i: np.dot(w, get_feature(state, i, state_dim, action_dim)),
+                reverse=True
+            )
+
+            # Step 2: 후보 중 마감일 전 배치 가능한 작업 찾기
+            valid_action = None
+            for a in q_candidates:
+                dur = task_list[a]["duration_minutes"]
                 curr_min = int((env.current_dt - schedule_start).total_seconds() // 60)
+                if env.due_date_offsets[a] is None or curr_min + dur <= env.due_date_offsets[a]:
+                    valid_action = a
+                    # 후속 작업까지 가능한지 확인 (check_deadline_feasible_prefix)
+                    future_deadline_tasks = [
+                        (i, task_list[i]["duration_minutes"], env.due_date_offsets[i])
+                        for i in remaining_tasks if i != a and env.due_date_offsets[i] is not None
+                    ]
+                    if check_deadline_feasible_prefix(future_deadline_tasks, schedule_start + timedelta(minutes=curr_min + dur + 10)):
+                        valid_action = a
+                        break
 
-                if rem_d:
-                    for a in rem_d:
-                        dur = task_list[a]["duration_minutes"]
-                        off = env.due_date_offsets[a]
-                        if off is not None and curr_min + dur > off:
-                            continue
-                        # 남은 마감 작업 중에서 현재 시간이후 마감인 작업만 검사
-                        future_deadline_tasks = [
-                            (i, task_list[i]["duration_minutes"], env.due_date_offsets[i])
-                            for i in rem_d if i != a and curr_min + dur + 10 <= env.due_date_offsets[i]
-                        ]
-                        if not check_deadline_feasible_prefix(future_deadline_tasks, schedule_start + timedelta(minutes=curr_min + dur + 10)):
-                            continue
-                        valid.append(a)
+            # Step 3: 실행 or 실패
+            if valid_action is not None:
+                try:
+                    state, _, done, _ = env.step(valid_action)
+                    schedule.append(valid_action)
+                    start_times.append(env.start_times[-1])
+                except RuntimeError as e:
+                    print(f"⚠️ RuntimeError: {e}")
+            else:
+                
+                print(f"❌ 시도 {trial} 실패: 마감 전 배치 가능한 작업이 없습니다.")
+                if schedule and start_times:
+                    print("🔍 현재까지 배치된 작업:")
+                    for idx, sm in zip(schedule, start_times):
+                        t = task_list[idx]
+                        start_dt = schedule_start + timedelta(minutes=sm)
+                        end_dt = start_dt + timedelta(minutes=t["duration_minutes"])
+                        print(f" - {start_dt:%Y-%m-%d %H:%M} ~ {end_dt:%H:%M} | {t.get('task_name', '이름 없음')} (ID: {t.get('id')})")
                 else:
-                    valid = [a for a in no_deadline_indices if a not in env.scheduled_set]
-
-                if not valid:
-                    raise NoValidTaskError()
-
-                q_vals = [-np.inf] * action_dim
-                for a in valid:
-                    phi = get_feature(state, a, state_dim, action_dim)
-                    q_vals[a] = np.dot(w, phi)
-                action = int(np.argmax(q_vals))
-
-                state, _, done, _ = env.step(action)
-                schedule.append(action)
-                start_times.append(env.start_times[-1])
-
-                if env.current_dt > schedule_end:
-                    raise NoValidTaskError()
+                    print("➡️ 배치된 작업 없음.")
+                continue  # 다음 trial
+            
 
             print(f"✅ 시도 {trial} 성공적으로 스케줄링 완료!")
             break
 
         except NoValidTaskError:
             print(f"❌ 시도 {trial} 실패: 유효한 작업이 없습니다. 재시도합니다…")
+            if schedule and start_times:
+                print("🔍 현재까지 배치된 작업:")
+                for idx, sm in zip(schedule, start_times):
+                    t = task_list[idx]
+                    start_dt = schedule_start + timedelta(minutes=sm)
+                    end_dt = start_dt + timedelta(minutes=t["duration_minutes"])
+                    print(f" - {start_dt:%Y-%m-%d %H:%M} ~ {end_dt:%H:%M} | {t.get('task_name', '이름 없음')} (ID: {t.get('id')})")
+            else:
+                print("➡️ 배치된 작업 없음.")
+
         except RuntimeError as e:
             print(f"❌ 시도 {trial} 실패: {e}. 재시도합니다…")
 
@@ -391,7 +410,7 @@ def schedule_relocation(task_list, schedule_start, schedule_end, available_times
             st = st.replace(hour=start_t.hour, minute=start_t.minute, second=0, microsecond=0)
         en = st + timedelta(minutes=t["duration_minutes"])
         print(f"{st:%Y-%m-%d %H:%M} - {en:%H:%M}: {t['subject']} (타입: {t.get('task_type', 'N/A')})")
-
+    
     if violations:
         print("\n=== 마감일 위반 작업 ===")
         for subj, typ, s, e, d in violations:
