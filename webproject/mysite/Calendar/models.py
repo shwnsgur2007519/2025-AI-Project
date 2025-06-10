@@ -12,7 +12,7 @@ class ScheduleType(models.Model):
 
 class Schedule(models.Model):
     owner=models.ForeignKey(User, on_delete=models.CASCADE)
-    task_name=models.CharField(max_length=50)
+    task_name=models.CharField(max_length=50, blank=True)
     duration_minutes=models.IntegerField(null=True, blank=True)
     difficulty=models.IntegerField(null=True, blank=True)
     importance=models.IntegerField(null=True, blank=True)
@@ -26,18 +26,26 @@ class Schedule(models.Model):
     exam=models.ForeignKey('self',default=None, on_delete=models.SET_DEFAULT, null=True ,blank=True)
     color = models.CharField(max_length=7, blank=True, default='#6c8df5')
     is_done = models.BooleanField(default=False)
+    
+    
     def clean(self):
         # 조건: 시험 일정이면 deadline은 필수
         errors={}
-        if self.is_exam_task and self.exam is None:
-            errors['exam']='시험 일정이면 반드시 입력해야 합니다.'
-        elif not self.is_exam_task and self.exam:
-            errors['exam']='시험 일정이 아니면 입력할 수 없습니다.'
+        if self.task_name == '':
+            errors['task_name'] = '일정 이름을 입력하세요'
+        elif self.is_exam_task and self.exam:
+            errors['exam']='시험 일정이면 입력할 수 없습니다.'
         if self.is_fixed and self.start_time is None:
             errors['start_time']='고정 일정이면 반드시 입력해야 합니다'
-        if self.is_fixed and self.end_time is None:
-            errors['end_time']='고정 일정이면 반드시 입력해야 합니다'
-        raise ValidationError(errors)
+        # if self.is_fixed and self.end_time is None:
+        #     errors['end_time']='고정 일정이면 반드시 입력해야 합니다'
+        if errors:
+            raise ValidationError(errors)
     
     def __str__(self):
-        return f"{self.task_name}({self.owner})"
+        return f"{self.task_name}[{self.owner}]"
+
+# class UserProfile(models.Model):
+#     user = models.OneToOneField(User, on_delete=models.CASCADE)
+#     start_time = models.TimeField(null=True, blank=True)
+#     end_time = models.TimeField(null=True, blank=True)

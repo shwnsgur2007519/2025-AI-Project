@@ -79,27 +79,27 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # 로컬
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'dataset/db.sqlite3',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'dataset/db.sqlite3',
+    }
+}
 
 
 #배포
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',  # 또는 postgresql
-        'HOST':   os.getenv('DB_HOST', ''),  # 기본을 빈 문자열로
-        'NAME':   os.getenv('DB_NAME', ''),
-        'USER':   os.getenv('DB_USER', ''),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        # 기본 포트 사용 시 PORT 설정 불필요
-    }
-}
-MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',  # 또는 postgresql
+#         'HOST':   os.getenv('DB_HOST', ''),  # 기본을 빈 문자열로
+#         'NAME':   os.getenv('DB_NAME', ''),
+#         'USER':   os.getenv('DB_USER', ''),
+#         'PASSWORD': os.getenv('DB_PASSWORD', ''),
+#         # 기본 포트 사용 시 PORT 설정 불필요
+#     }
+# }
+# MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

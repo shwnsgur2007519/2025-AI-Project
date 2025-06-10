@@ -19,10 +19,10 @@
       <thead class="table-light">
         <tr>
           <th>일정명</th>
-          <th>과목</th>
+          <th>일정 분류</th>
           <th>마감일</th>
-          <th>고정</th>
-          <th>시험</th>
+          <th>소요 시간</th>
+          <th>시험 여부</th>
           <th>
             <!-- 전체 선택 체크박스 -->
             <input type="checkbox" id="select-all">
@@ -34,9 +34,9 @@
         {% for item in schedules %}
         <tr>
           <td class="fw-bold">{{ item.task_name }}</td>
-          <td>{{ item.subject }}</td>
+          <td>{{ item.task_type | default_if_none:""}}</td>
           <td>{{ item.deadline|date:"Y-m-d H:i" }}</td>
-          <td>{{ item.is_fixed|yesno:"✅,❌" }}</td>
+          <td>{{ item.duration_minutes|default_if_none:""}}</td>
           <td>{{ item.is_exam_task|yesno:"📘,❌" }}</td>
           <td>
             <input type="checkbox" name="selected_ids" value="{{ item.id }}">

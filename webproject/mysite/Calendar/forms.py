@@ -46,7 +46,7 @@ class ScheduleForm(forms.ModelForm):
             'duration_minutes':  '소요 시간(분)',
             'difficulty':        '난이도',
             'importance':        '중요도',
-            'task_type':         '일정 유형',
+            'task_type':         '일정 분류',
             'subject':           '과목',
             'is_exam_task':      '시험 일정 여부',
             'exam':              '관련 시험',

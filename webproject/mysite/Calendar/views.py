@@ -18,6 +18,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from datetime import timedelta, timezone, datetime
+from django.core.exceptions import ValidationError
 
 KST = timezone(timedelta(hours=23))
 
@@ -130,9 +131,9 @@ def schedule_week(request):
         try:
             reference_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError:
-            reference_date = datetime.now(KST).date()
+            reference_date = datetime.now().date()
     else:
-        reference_date = datetime.now(KST).date()
+        reference_date = datetime.now().date()
 
     # 월요일 기준 주 시작일
     start_of_week = reference_date - timedelta(days=reference_date.weekday())
@@ -208,7 +209,7 @@ def schedule_week(request):
         'prev_date': (start_of_week - timedelta(days=7)).strftime('%Y-%m-%d'),
         'next_date': (start_of_week + timedelta(days=7)).strftime('%Y-%m-%d'),
         'has_ai_session': 'ai_result_json' in request.session,
-        'today': datetime.now(KST).date(),
+        'today': datetime.now().date(),
     }
     return render(request, 'calendar/schedule_week.html', context)
 
@@ -220,12 +221,16 @@ def schedule_create(request):
         if form.is_valid():
             schedule = form.save(commit=False)
             schedule.owner = request.user
-            schedule.save()
-            return redirect('calendar:index')
+            try:
+                schedule.full_clean()  # 모델 유효성 검사
+                schedule.save()
+                return redirect('calendar:index')
+            except ValidationError as e:
+                form.add_error(None, e)  # 폼 전체 에러로 추가
+
     else:
         form = ScheduleForm(owner=request.user)
     return render(request, 'calendar/schedule_form.html', {'form': form, 'is_edit': False})
-
 
 @login_required(login_url='common:login')
 def schedule_edit(request, pk):
